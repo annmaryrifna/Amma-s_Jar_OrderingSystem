@@ -1,0 +1,28 @@
+#root {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #fffaf2;
+  color: #3e3025;
+}
+
+.welcome-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.welcome-container h1 {
+  color: #8b4513;
+  font-size: 32px;
+}
+
+.welcome-container p {
+  font-size: 18px;
+}
