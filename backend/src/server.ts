@@ -9,6 +9,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 import adminOrderRoutes from "./routes/adminOrderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import adminPaymentRoutes from "./routes/adminPaymentRoutes.js";
+import deliveryRoutes from "./routes/deliveryPlaceRoutes.js";
 const app = express();
 const PORT = 5000;
 
@@ -22,6 +23,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin/payments", adminPaymentRoutes);
+app.use("/api/admin/place", deliveryRoutes);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // Test route
 app.get("/", (req, res) => {

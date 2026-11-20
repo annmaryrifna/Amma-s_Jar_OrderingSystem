@@ -12,6 +12,7 @@ import Shop from "./pages/Shop";
 import Cart from "./pages/Cart"; 
 import Checkout from "./pages/Checkout";
 import MyOrders from "./pages/MyOrders";
+import ProductDelivery from "./pages/ProductDeliveryPlaces";
 import AdminPaymentManagement from "./pages/AdminPaymentManagement";
 import { CartProvider } from "./context/CartContext";
 function App() {
@@ -38,7 +39,7 @@ function App() {
         {/* Admin Pages */}
         <Route path="/admin" element={<AdminLayout />}>
          <Route path="dashboard" element={<AdminDashboard />} />
-
+            <Route path="places" element={<ProductDelivery />} />
          <Route path="categories" element={<CategoryManagement />} />
           <Route path="products" element={<ProductManagement />} /> 
           <Route path="orders" element={<AdminOrderManagement />} />

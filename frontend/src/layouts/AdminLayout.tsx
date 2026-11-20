@@ -10,6 +10,7 @@ import {
     Settings,
     LogOut,
     ChefHat,
+    Truck,
 } from "lucide-react";
 
 function AdminLayout() {
@@ -58,14 +59,17 @@ function AdminLayout() {
                         <CalendarDays size={19} />
                         Daily Capacity
                     </NavLink>
-
+                    <NavLink to="/admin/place">
+                        <Truck size={19} />
+                        Product Delivery
+                    </NavLink>
                     <NavLink to="/admin/customers">
                         <Users size={19} />
                         Customers
                     </NavLink>
                     <NavLink to="/admin/payments">
-                        <Users size={19} />
-                        Payments
+                        
+                        Payments 
                     </NavLink>
                     <NavLink to="/admin/settings">
                         <Settings size={19} />
