@@ -54,16 +54,15 @@ export const getAllOrders = async (
         for (const order of orders) {
             const [items] = await pool.query<RowDataPacket[]>(
                 `SELECT
-                    product_id,
-                    product_name,
-                    quantity,
-                    unit,
-                    price,
-                    price_quantity,
-                    total_price,
-                    capacity_units
-                 FROM order_items
-                 WHERE order_id = ?`,
+        product_id,
+        product_name,
+        quantity,
+        unit,
+        price,
+        price_quantity,
+        total_price
+     FROM order_items
+     WHERE order_id = ?`,
                 [order.order_id]
             );
 
@@ -114,6 +113,7 @@ export const approveOrder = async (
                 `SELECT
                     order_id,
                     user_id,
+                    booking_date,
                     subtotal,
                     delivery_charge,
                     order_status
@@ -142,111 +142,80 @@ export const approveOrder = async (
                 });
             }
 
-            // 3. Lock the capacity settings row.
-            // This serializes all admin approvals.
+
+            // 3. Lock the daily booking settings row.
+            // This serializes admin approvals.
             const [settings] = await connection.query<RowDataPacket[]>(
-                `SELECT setting_id, daily_capacity
-                 FROM capacity_settings
-                 ORDER BY setting_id DESC
-                 LIMIT 1
-                 FOR UPDATE`
+                `SELECT setting_id, daily_booking_limit
+     FROM capacity_settings
+     ORDER BY setting_id DESC
+     LIMIT 1
+     FOR UPDATE`
             );
 
             if (settings.length === 0) {
                 await connection.rollback();
 
                 return res.status(500).json({
-                    message: "Daily capacity setting is missing.",
+                    message: "Daily booking limit setting is missing.",
                 });
             }
 
-            const dailyCapacity = Number(
-                settings[0].daily_capacity
+            const dailyBookingLimit = Number(
+                settings[0].daily_booking_limit
             );
 
             if (
-                !Number.isFinite(dailyCapacity) ||
-                dailyCapacity <= 0
+                !Number.isInteger(dailyBookingLimit) ||
+                dailyBookingLimit <= 0
             ) {
                 await connection.rollback();
 
                 return res.status(500).json({
-                    message: "Invalid daily capacity setting.",
+                    message: "Invalid daily booking limit.",
                 });
             }
 
-            // 4. Calculate capacity already reserved for this date
-            const [capacityRows] =
-                await connection.query<RowDataPacket[]>(
-                    `SELECT
-                        COALESCE(SUM(oi.capacity_units), 0)
-                        AS used_capacity
-                     FROM orders o
-                     INNER JOIN order_items oi
-                        ON o.order_id = oi.order_id
-                     WHERE o.booking_date = (
-                        SELECT booking_date
-                        FROM orders
-                        WHERE order_id = ?
-                     )
-                     AND o.order_status IN (?, ?, ?)`,
-                    [
-                        orderId,
-                        APPROVED_STATUS,
-                        CONFIRMED_STATUS,
-                        COMPLETED_STATUS,
-                    ]
-                );
-
-            const usedCapacity = Number(
-                capacityRows[0].used_capacity
+            // 4. Count bookings already approved for this date.
+            // Approved-awaiting-payment bookings also count because
+            // they have already been accepted by the admin.
+            const [bookingRows] = await connection.query<RowDataPacket[]>(
+                `SELECT COUNT(*) AS used_bookings
+                FROM orders
+                 WHERE booking_date = ?
+                      AND order_status IN (?, ?, ?)`,
+                [
+                    order.booking_date,
+                    APPROVED_STATUS,
+                    CONFIRMED_STATUS,
+                    COMPLETED_STATUS,
+                ]
             );
 
-            // 5. Calculate capacity required by this booking
-            const [itemCapacityRows] =
-                await connection.query<RowDataPacket[]>(
-                    `SELECT
-                        COALESCE(SUM(capacity_units), 0)
-                        AS requested_capacity
-                     FROM order_items
-                     WHERE order_id = ?`,
-                    [orderId]
-                );
+            const usedBookings = Number(bookingRows[0].used_bookings);
 
-            const requestedCapacity = Number(
-                itemCapacityRows[0].requested_capacity
-            );
+            const projectedBookings = usedBookings + 1;
 
-            if (
-                !Number.isFinite(requestedCapacity) ||
-                requestedCapacity <= 0
-            ) {
-                await connection.rollback();
+            const limitExceeded = projectedBookings > dailyBookingLimit;
 
-                return res.status(400).json({
-                    message: "This booking has no valid product capacity.",
-                });
-            }
+            // 5. Require explicit admin confirmation when exceeding the limit.
+            const overrideDailyLimit =
+                req.body?.overrideDailyLimit === true;
 
-            const remainingCapacity = Math.max(
-                0,
-                dailyCapacity - usedCapacity
-            );
-
-            // 6. Check daily capacity
-            if (
-                usedCapacity + requestedCapacity > dailyCapacity
-            ) {
+            if (limitExceeded && !overrideDailyLimit) {
                 await connection.rollback();
 
                 return res.status(409).json({
-                    message: "Daily capacity is insufficient to approve this booking.",
-                    dailyCapacity,
-                    usedCapacity,
-                    remainingCapacity,
-                    requestedCapacity,
+                    requiresOverride: true,
+                    message:
+                        "Daily booking limit reached. Do you want to approve this additional booking anyway?",
+                    dailyBookingLimit,
+                    usedBookings,
+                    projectedBookings,
+                    bookingDate: order.booking_date,
                 });
             }
+
 
             // 7. Check whether the customer has a successful booking
             const [previousBookings] =
@@ -397,15 +366,9 @@ export const approveOrder = async (
                 advanceAmount,
                 balanceAmount,
 
-                dailyCapacity,
-                usedCapacity,
-                remainingCapacity: Number(
-                    (
-                        dailyCapacity -
-                        usedCapacity -
-                        requestedCapacity
-                    ).toFixed(2)
-                ),
+                dailyBookingLimit,
+                usedBookings: projectedBookings,
+                limitExceeded,
             });
 
         } catch (error) {

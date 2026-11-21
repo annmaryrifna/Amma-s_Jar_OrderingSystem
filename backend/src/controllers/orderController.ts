@@ -11,7 +11,6 @@ interface ValidatedItem {
     price: number;
     price_quantity: number;
     total_price: number;
-    capacity_units: number;
 }
 
 export const createOrder = async (req: Request, res: Response) => {
@@ -32,6 +31,7 @@ export const createOrder = async (req: Request, res: Response) => {
             street,
             landmark,
             pincode,
+            deliveryAreaId,
             specialInstructions,
             cartItems,
         } = req.body;
@@ -196,7 +196,8 @@ export const createOrder = async (req: Request, res: Response) => {
                 message: "Invalid delivery method.",
             });
         }
-
+        let deliveryCharge = 0;
+        let selectedDeliveryArea: RowDataPacket | null = null;
         // 8. Validate delivery address
         if (deliveryMethod === "delivery") {
             if (
@@ -217,6 +218,36 @@ export const createOrder = async (req: Request, res: Response) => {
                     message: "Please enter a valid 6-digit PIN code.",
                 });
             }
+
+            const selectedAreaId = Number(deliveryAreaId);
+
+            if (
+                !Number.isInteger(selectedAreaId) ||
+                selectedAreaId <= 0
+            ) {
+                return res.status(400).json({
+                    message: "Please select a valid delivery area.",
+                });
+            }
+
+            const [deliveryAreas] = await pool.query<RowDataPacket[]>(
+                `SELECT area_id, area_name, pincode, delivery_charge
+     FROM delivery_areas
+     WHERE area_id = ?
+     AND pincode = ?
+     AND is_active = TRUE`,
+                [selectedAreaId, pincode.trim()]
+            );
+
+            if (deliveryAreas.length === 0) {
+                return res.status(400).json({
+                    message: "The selected delivery area is unavailable. Please check your PIN code again.",
+                });
+            }
+            selectedDeliveryArea = deliveryAreas[0];
+            deliveryCharge = Number(selectedDeliveryArea.delivery_charge);
+
+            
         }
 
         // 9. Validate special instructions
@@ -253,15 +284,14 @@ export const createOrder = async (req: Request, res: Response) => {
             }
 
             // Get current product information from database
-            const [products] = await connection.query<RowDataPacket[]>(
+            const [products] = await pool.query<RowDataPacket[]>(
                 `SELECT
                     product_id,
                     product_name,
                     price,
                     price_quantity,
                     unit,
-                    purchase_options,
-                    capacity_units_per_sale_unit
+                    purchase_options
                  FROM products
                  WHERE product_id = ?
                  AND is_active = TRUE`,
@@ -320,24 +350,7 @@ export const createOrder = async (req: Request, res: Response) => {
                 ((price / priceQuantity) * quantity).toFixed(2)
             );
 
-            // Calculate capacity units
-            const capacityFactor = Number(
-                product.capacity_units_per_sale_unit || 1
-            );
-
-            if (
-                !Number.isFinite(capacityFactor) ||
-                capacityFactor <= 0
-            ) {
-                return res.status(400).json({
-                    message: "Invalid product capacity configuration.",
-                });
-            }
-
-            const capacityUnits = Number(
-                (quantity * capacityFactor).toFixed(2)
-            );
-
+           
             validatedItems.push({
                 product_id: product.product_id,
                 product_name: product.product_name,
@@ -346,7 +359,6 @@ export const createOrder = async (req: Request, res: Response) => {
                 price,
                 price_quantity: priceQuantity,
                 total_price: totalPrice,
-                capacity_units: capacityUnits,
             });
 
             subtotal += totalPrice;
@@ -354,80 +366,57 @@ export const createOrder = async (req: Request, res: Response) => {
 
         subtotal = Number(subtotal.toFixed(2));
 
-        // 12. Get configured daily capacity
+        // Check the daily booking limit
         const [settings] = await connection.query<RowDataPacket[]>(
-            `SELECT daily_capacity
-             FROM capacity_settings
-             ORDER BY setting_id DESC
-             LIMIT 1`
+            `SELECT daily_booking_limit
+     FROM capacity_settings
+     ORDER BY setting_id DESC
+     LIMIT 1`
         );
 
         if (settings.length === 0) {
             return res.status(500).json({
-                message: "Daily capacity setting is missing.",
+                message: "Daily booking limit setting is missing.",
             });
         }
 
-        const dailyCapacity = Number(settings[0].daily_capacity);
+        const dailyBookingLimit = Number(
+            settings[0].daily_booking_limit
+        );
 
         if (
-            !Number.isFinite(dailyCapacity) ||
-            dailyCapacity <= 0
+            !Number.isInteger(dailyBookingLimit) ||
+            dailyBookingLimit <= 0
         ) {
             return res.status(500).json({
-                message: "Invalid daily capacity setting.",
+                message: "Invalid daily booking limit.",
             });
         }
 
-        // 13. Calculate already reserved capacity for selected date
-        const [capacityRows] = await connection.query<RowDataPacket[]>(
-            `SELECT COALESCE(SUM(oi.capacity_units), 0) AS used_capacity
-             FROM orders o
-             JOIN order_items oi
-                ON o.order_id = oi.order_id
-             WHERE o.booking_date = ?
-             AND o.order_status IN (
-                'Approved – Awaiting Payment',
-                'Confirmed',
-                'Completed'
-             )`,
+        // Count confirmed and completed bookings for this date
+        const [bookingRows] = await connection.query<RowDataPacket[]>(
+            `SELECT COUNT(*) AS used_bookings
+     FROM orders
+     WHERE booking_date = ?
+     AND order_status IN ( 'Approved – Awaiting Payment','Confirmed', 'Completed')`,
             [bookingDate]
         );
 
-        const usedCapacity = Number(
-            capacityRows[0].used_capacity
-        );
+        const usedBookings = Number(bookingRows[0].used_bookings);
 
-        // 14. Calculate requested capacity
-        const requestedCapacity = Number(
-            validatedItems.reduce(
-                (total, item) => total + item.capacity_units,
-                0
-            ).toFixed(2)
-        );
-
-        const remainingCapacity = Math.max(
+        const remainingBookings = Math.max(
             0,
-            dailyCapacity - usedCapacity
+            dailyBookingLimit - usedBookings
         );
 
-        if (
-            usedCapacity + requestedCapacity > dailyCapacity
-        ) {
-            return res.status(400).json({
-                message: "Sorry, this date has insufficient booking capacity.",
-                dailyCapacity,
-                usedCapacity,
-                remainingCapacity,
-                requestedCapacity,
-            });
-        }
+        const limitReached = usedBookings >= dailyBookingLimit;
+
+        
 
         // 15. Pending bookings do not receive the discount yet
         // Discount will be calculated during admin approval.
         const discountPercentage = 0;
         const discountAmount = 0;
-        const deliveryCharge = 0;
 
         const totalAmount = Number(
             (subtotal + deliveryCharge).toFixed(2)
@@ -457,6 +446,8 @@ export const createOrder = async (req: Request, res: Response) => {
                         street,
                         landmark,
                         pincode,
+                        delivery_area_id,
+                        delivery_area_name,
                         special_instructions,
                         subtotal,
                         discount_percentage,
@@ -469,7 +460,7 @@ export const createOrder = async (req: Request, res: Response) => {
                         payment_status
                     ) VALUES (
                         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                     )`,
                     [
                         userId,
@@ -492,6 +483,8 @@ export const createOrder = async (req: Request, res: Response) => {
                         deliveryMethod === "delivery"
                             ? pincode.trim()
                             : null,
+                        selectedDeliveryArea?.area_id ?? null,
+                        selectedDeliveryArea?.area_name ?? null,
                         specialInstructions?.trim() || null,
                         subtotal,
                         discountPercentage,
@@ -518,9 +511,8 @@ export const createOrder = async (req: Request, res: Response) => {
                         unit,
                         price,
                         price_quantity,
-                        total_price,
-                        capacity_units
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        total_price
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         orderId,
                         item.product_id,
@@ -530,7 +522,6 @@ export const createOrder = async (req: Request, res: Response) => {
                         item.price,
                         item.price_quantity,
                         item.total_price,
-                        item.capacity_units,
                     ]
                 );
             }
@@ -543,6 +534,10 @@ export const createOrder = async (req: Request, res: Response) => {
                 orderId,
                 orderStatus: "Pending Admin Approval",
                 paymentStatus: "Not Paid",
+                dailyBookingLimit,
+                usedBookings,
+                remainingBookings,
+                limitReached,
                 subtotal,
                 discountPercentage,
                 discountAmount,
@@ -550,10 +545,6 @@ export const createOrder = async (req: Request, res: Response) => {
                 totalAmount,
                 advanceAmount,
                 balanceAmount,
-                dailyCapacity,
-                usedCapacity,
-                remainingCapacity,
-                requestedCapacity,
                 bookingTime: normalizedTime,
                 items: validatedItems,
             });
@@ -637,6 +628,45 @@ export const getCustomerOrders = async (
 
         return res.status(500).json({
             message: "Unable to retrieve your bookings.",
+        });
+    }
+};
+
+export const getDeliveryAreasByPincode = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const pincode = String(req.params.pincode || "").trim();
+
+        if (!/^\d{6}$/.test(pincode)) {
+            return res.status(400).json({
+                message: "Please enter a valid 6-digit PIN code.",
+            });
+        }
+
+        const [areas] = await pool.query<RowDataPacket[]>(
+            `SELECT area_id, area_name, pincode, delivery_charge
+             FROM delivery_areas
+             WHERE pincode = ?
+             AND is_active = TRUE
+             ORDER BY area_name ASC`,
+            [pincode]
+        );
+
+        return res.status(200).json({
+            available: areas.length > 0,
+            areas,
+            message: areas.length > 0
+                ? "Delivery areas retrieved successfully."
+                : "Delivery is not currently available for this area.",
+        });
+
+    } catch (error) {
+        console.error("Delivery area lookup error:", error);
+
+        return res.status(500).json({
+            message: "Unable to check delivery availability.",
         });
     }
 };

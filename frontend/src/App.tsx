@@ -39,7 +39,7 @@ function App() {
         {/* Admin Pages */}
         <Route path="/admin" element={<AdminLayout />}>
          <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="places" element={<ProductDelivery />} />
+            <Route path="place" element={<ProductDelivery />} />
          <Route path="categories" element={<CategoryManagement />} />
           <Route path="products" element={<ProductManagement />} /> 
           <Route path="orders" element={<AdminOrderManagement />} />

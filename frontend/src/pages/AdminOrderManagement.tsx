@@ -155,6 +155,7 @@ const AdminOrderManagement = () => {
         });
     }, [orders, search, statusFilter, paymentFilter]);
 
+
     const handleApprove = async (order: Order) => {
         const confirmed = window.confirm(
             `Are you sure you want to approve Booking #${order.order_id}?`
@@ -166,9 +167,35 @@ const AdminOrderManagement = () => {
             setApprovingId(order.order_id);
             setError("");
 
-            const response = await API.put(
-                `/admin/orders/${order.order_id}/approve`
-            );
+            let response;
+
+            try {
+                response = await API.put(
+                    `/admin/orders/${order.order_id}/approve`
+                );
+            } catch (err: any) {
+                // Check whether the daily booking limit was reached.
+                if (
+                    err.response?.status === 409 &&
+                    err.response?.data?.requiresOverride
+                ) {
+                    const overrideConfirmed = window.confirm(
+                        `${err.response.data.message}\n\n` +
+                        `Daily limit: ${err.response.data.dailyBookingLimit}\n` +
+                        `Already approved: ${err.response.data.usedBookings}\n\n` +
+                        "Do you want to approve this booking anyway?"
+                    );
+
+                    if (!overrideConfirmed) return;
+
+                    response = await API.put(
+                        `/admin/orders/${order.order_id}/approve`,
+                        { overrideDailyLimit: true }
+                    );
+                } else {
+                    throw err;
+                }
+            }
 
             alert(
                 response.data.message ||
@@ -185,6 +212,7 @@ const AdminOrderManagement = () => {
             setApprovingId(null);
         }
     };
+
     
     const getStatusClass = (status: string) => {
         if (status === "Pending Admin Approval") return "pending";

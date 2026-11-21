@@ -22,6 +22,7 @@ interface Order {
     booking_slot: string;
     booking_time: string;
     delivery_method: string;
+    delivery_charge: number;
     subtotal: number;
     discount_amount: number;
     total_amount: number;
@@ -427,7 +428,15 @@ const MyOrders = () => {
                                                 ).toFixed(2)}
                                             </strong>
                                         </div>
-
+                                        <div>
+                                            <span>Delivery Charge</span>
+                                            <strong>
+                                                ₹
+                                                {Number(
+                                                    order.delivery_charge || 0
+                                                ).toFixed(2)}
+                                            </strong>
+                                        </div>
                                         <div>
                                             <span>Total amount</span>
                                             <strong>

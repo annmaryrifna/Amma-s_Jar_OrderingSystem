@@ -112,7 +112,6 @@ export const getProducts = async (req: Request, res: Response) => {
                 p.price_quantity,
                 p.unit,
                 p.purchase_options,
-                p.capacity_units_per_sale_unit,
                 p.is_active,
                 p.created_at
             FROM products p

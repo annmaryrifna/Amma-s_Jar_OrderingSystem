@@ -5,13 +5,23 @@ import { useCart } from "../context/CartContext";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import "./css/Checkout.css";
-
+interface DeliveryArea {
+    area_id: number;
+    area_name: string;
+    pincode: string;
+    delivery_charge: number;
+}
 function Checkout() {
     const { cartItems, cartTotal ,clearCart} = useCart();
     const [houseName, setHouseName] = useState("");
     const [street, setStreet] = useState("");
     const [landmark, setLandmark] = useState("");
     const [pincode, setPincode] = useState("");
+    const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
+    const [selectedAreaId, setSelectedAreaId] = useState("");
+    const [deliveryCharge, setDeliveryCharge] = useState(0);
+    const [isCheckingDelivery, setIsCheckingDelivery] = useState(false);
+    const [deliveryMessage, setDeliveryMessage] = useState("");
     const [specialInstructions, setSpecialInstructions] = useState("");
     const [formError, setFormError] = useState("");
     const navigate = useNavigate();
@@ -45,6 +55,69 @@ function Checkout() {
     const [selectedTime, setSelectedTime] = useState("10:00");
 
     const [bookingDate, setBookingDate] = useState("");
+    useEffect(() => {
+        if (deliveryMethod !== "delivery" || !/^\d{6}$/.test(pincode)) {
+            setDeliveryAreas([]);
+            setSelectedAreaId("");
+            setDeliveryCharge(0);
+            setDeliveryMessage("");
+            setIsCheckingDelivery(false);
+            return;
+        }
+
+        let cancelled = false;
+
+        const checkDelivery = async () => {
+            try {
+                setIsCheckingDelivery(true);
+                setDeliveryMessage("");
+                setDeliveryAreas([]);
+                setSelectedAreaId("");
+                setDeliveryCharge(0);
+
+                const response = await API.get(
+                    `/orders/delivery-areas/${pincode}`
+                );
+
+                if (cancelled) return;
+
+                const areas: DeliveryArea[] = response.data.areas || [];
+
+                setDeliveryAreas(areas);
+
+                if (areas.length === 1) {
+                    setSelectedAreaId(String(areas[0].area_id));
+                    setDeliveryCharge(Number(areas[0].delivery_charge));
+                    setDeliveryMessage("Delivery is available in your locality.");
+                } else if (areas.length > 1) {
+                    setDeliveryMessage("Please select your locality.");
+                } else {
+                    setDeliveryMessage(
+                        "Your locality is not listed. You can still submit a delivery request for admin verification."
+                    );
+                }
+            } catch (error: any) {
+                if (cancelled) return;
+
+                setDeliveryMessage(
+                    error.response?.data?.message ||
+                    "Unable to check delivery availability."
+                );
+            } finally {
+                if (!cancelled) {
+                    setIsCheckingDelivery(false);
+                }
+            }
+        };
+
+        const timer = window.setTimeout(checkDelivery, 400);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [pincode, deliveryMethod]);
+    
 
     const today = new Date();
     const minimumDate = new Date(today);
@@ -138,6 +211,7 @@ function Checkout() {
                 street,
                 landmark,
                 pincode,
+                deliveryAreaId: deliveryMethod === "delivery" ? selectedAreaId : null,
                 specialInstructions,
                 cartItems: cartItems.map((item) => ({
                     product_id: item.product_id,
@@ -409,6 +483,57 @@ function Checkout() {
                                                 onChange={(e) => setPincode(e.target.value)}
                                             />
                                         </div>
+                                        {isCheckingDelivery && (
+                                            <p>Checking delivery availability...</p>
+                                        )}
+
+                                        {deliveryMessage && (
+                                            <p className="delivery-message">
+                                                {deliveryMessage}
+                                            </p>
+                                        )}
+
+                                        {deliveryAreas.length > 1 && (
+                                            <div className="checkout-form-group">
+                                                <label htmlFor="delivery-area">
+                                                    Select Your Locality
+                                                </label>
+
+                                                <select
+                                                    id="delivery-area"
+                                                    value={selectedAreaId}
+                                                    onChange={(e) => {
+                                                        const areaId = e.target.value;
+                                                        setSelectedAreaId(areaId);
+
+                                                        const area = deliveryAreas.find(
+                                                            (item) => String(item.area_id) === areaId
+                                                        );
+
+                                                        setDeliveryCharge(
+                                                            area ? Number(area.delivery_charge) : 0
+                                                        );
+                                                    }}
+                                                >
+                                                    <option value="">Choose your locality</option>
+
+                                                    {deliveryAreas.map((area) => (
+                                                        <option
+                                                            key={area.area_id}
+                                                            value={area.area_id}
+                                                        >
+                                                            {area.area_name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        {deliveryAreas.length === 1 && (
+                                            <p>
+                                                Locality: <strong>{deliveryAreas[0].area_name}</strong>
+                                            </p>
+                                        )}
                                     </div>
                                 )}
 
@@ -452,10 +577,24 @@ function Checkout() {
                                 </div>
                             ))}
 
-                            <div className="checkout-summary-total">
-                                <span>Product Subtotal</span>
-                                <strong>₹{cartTotal.toFixed(2)}</strong>
-                            </div>
+                                <div className="checkout-summary-total">
+                                    <span>Delivery Charge</span>
+                                    <strong>
+                                        ₹{deliveryMethod === "delivery"
+                                            ? deliveryCharge.toFixed(2)
+                                            : "0.00"}
+                                    </strong>
+                                </div>
+
+                                <div className="checkout-summary-total">
+                                    <span>Estimated Total</span>
+                                    <strong>
+                                        ₹{(
+                                            cartTotal +
+                                            (deliveryMethod === "delivery" ? deliveryCharge : 0)
+                                        ).toFixed(2)}
+                                    </strong>
+                                </div>
 
                             <p>
                                 Your booking will be reviewed by our admin.
