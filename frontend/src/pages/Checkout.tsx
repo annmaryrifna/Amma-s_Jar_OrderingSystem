@@ -17,7 +17,34 @@ function Checkout() {
     const [street, setStreet] = useState("");
     const [landmark, setLandmark] = useState("");
     const [pincode, setPincode] = useState("");
+    const [deliveryMethod, setDeliveryMethod] = useState("delivery");
+    const [selectedSlot, setSelectedSlot] = useState("morning");
+    const [selectedTime, setSelectedTime] = useState("10:00");
+
+    const [bookingDate, setBookingDate] = useState("");
     const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
+    useEffect(() => {
+        if (deliveryMethod !== "delivery") return;
+
+        const fetchDeliveryAreas = async () => {
+            try {
+                setIsCheckingDelivery(true);
+                setDeliveryMessage("");
+
+                const response = await API.get("/orders/delivery-areas");
+                setDeliveryAreas(response.data.areas || []);
+            } catch (error: any) {
+                setDeliveryMessage(
+                    error.response?.data?.message ||
+                    "Unable to load delivery localities."
+                );
+            } finally {
+                setIsCheckingDelivery(false);
+            }
+        };
+
+        fetchDeliveryAreas();
+    }, [deliveryMethod]);
     const [selectedAreaId, setSelectedAreaId] = useState("");
     const [deliveryCharge, setDeliveryCharge] = useState(0);
     const [isCheckingDelivery, setIsCheckingDelivery] = useState(false);
@@ -50,73 +77,8 @@ function Checkout() {
             console.error("Unable to load customer information:", error);
         }
     }, []);
-    const [deliveryMethod, setDeliveryMethod] = useState("delivery");
-    const [selectedSlot, setSelectedSlot] = useState("morning");
-    const [selectedTime, setSelectedTime] = useState("10:00");
-
-    const [bookingDate, setBookingDate] = useState("");
-    useEffect(() => {
-        if (deliveryMethod !== "delivery" || !/^\d{6}$/.test(pincode)) {
-            setDeliveryAreas([]);
-            setSelectedAreaId("");
-            setDeliveryCharge(0);
-            setDeliveryMessage("");
-            setIsCheckingDelivery(false);
-            return;
-        }
-
-        let cancelled = false;
-
-        const checkDelivery = async () => {
-            try {
-                setIsCheckingDelivery(true);
-                setDeliveryMessage("");
-                setDeliveryAreas([]);
-                setSelectedAreaId("");
-                setDeliveryCharge(0);
-
-                const response = await API.get(
-                    `/orders/delivery-areas/${pincode}`
-                );
-
-                if (cancelled) return;
-
-                const areas: DeliveryArea[] = response.data.areas || [];
-
-                setDeliveryAreas(areas);
-
-                if (areas.length === 1) {
-                    setSelectedAreaId(String(areas[0].area_id));
-                    setDeliveryCharge(Number(areas[0].delivery_charge));
-                    setDeliveryMessage("Delivery is available in your locality.");
-                } else if (areas.length > 1) {
-                    setDeliveryMessage("Please select your locality.");
-                } else {
-                    setDeliveryMessage(
-                        "Your locality is not listed. You can still submit a delivery request for admin verification."
-                    );
-                }
-            } catch (error: any) {
-                if (cancelled) return;
-
-                setDeliveryMessage(
-                    error.response?.data?.message ||
-                    "Unable to check delivery availability."
-                );
-            } finally {
-                if (!cancelled) {
-                    setIsCheckingDelivery(false);
-                }
-            }
-        };
-
-        const timer = window.setTimeout(checkDelivery, 400);
-
-        return () => {
-            cancelled = true;
-            window.clearTimeout(timer);
-        };
-    }, [pincode, deliveryMethod]);
+   
+    
     
 
     const today = new Date();
@@ -169,12 +131,24 @@ function Checkout() {
         }
 
         if (deliveryMethod === "delivery") {
+            if (!selectedAreaId) {
+                return "Please select your delivery locality.";
+            }
+
+            const selectedArea = deliveryAreas.find(
+                (area) => String(area.area_id) === selectedAreaId
+            );
+
+            if (!selectedArea) {
+                return "Please select a valid delivery locality.";
+            }
+
             if (!houseName.trim() || !street.trim() || !landmark.trim()) {
                 return "Please complete your delivery address.";
             }
 
             if (!/^\d{6}$/.test(pincode.trim())) {
-                return "Please enter a valid 6-digit PIN code.";
+                return "Invalid PIN code for the selected locality.";
             }
         }
 
@@ -207,11 +181,11 @@ function Checkout() {
                 bookingSlot: selectedSlot,
                 bookingTime: selectedTime,
                 deliveryMethod,
-                houseName,
-                street,
-                landmark,
-                pincode,
-                deliveryAreaId: deliveryMethod === "delivery" ? selectedAreaId : null,
+                houseName: deliveryMethod === "delivery" ? houseName : null,
+                street: deliveryMethod === "delivery" ? street : null,
+                landmark: deliveryMethod === "delivery" ? landmark : null,
+                pincode: deliveryMethod === "delivery" ? pincode : null,
+                deliveryAreaId: deliveryMethod === "delivery" ? Number(selectedAreaId) : null,
                 specialInstructions,
                 cartItems: cartItems.map((item) => ({
                     product_id: item.product_id,
@@ -470,21 +444,67 @@ function Checkout() {
                                                 onChange={(e) => setLandmark(e.target.value)}
                                             />
                                         </div>
-
                                         <div className="checkout-form-group">
-                                            <label htmlFor="pincode">
-                                                PIN Code
+                                            <label htmlFor="delivery-area">
+                                                Select Your Locality
                                             </label>
-                                            <input
-                                                id="pincode"
-                                                type="text"
-                                                maxLength={6}
-                                                placeholder="Enter 6-digit PIN code" value={pincode}
-                                                onChange={(e) => setPincode(e.target.value)}
-                                            />
+
+                                            <select
+                                                id="delivery-area"
+                                                value={selectedAreaId}
+                                                onChange={(e) => {
+                                                    const areaId = e.target.value;
+
+                                                    const area = deliveryAreas.find(
+                                                        (item) => String(item.area_id) === areaId
+                                                    );
+
+                                                    setSelectedAreaId(areaId);
+                                                    setPincode(area?.pincode ?? "");
+                                                    setDeliveryCharge(
+                                                        area ? Number(area.delivery_charge) : 0
+                                                    );
+                                                }}
+                                                disabled={isCheckingDelivery || deliveryAreas.length === 0}
+                                            >
+                                                <option value="">Choose your locality</option>
+
+                                                {deliveryAreas.map((area) => (
+                                                    <option
+                                                        key={area.area_id}
+                                                        value={String(area.area_id)}
+                                                    >
+                                                        {area.area_name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
+
                                         {isCheckingDelivery && (
-                                            <p>Checking delivery availability...</p>
+                                            <p>Loading delivery localities...</p>
+                                        )}
+
+                                        {deliveryAreas.length === 0 && !isCheckingDelivery && (
+                                            <p className="delivery-message">
+                                                Home delivery is currently unavailable in the listed localities.
+                                                Please choose Self Pickup.
+                                            </p>
+                                        )}
+
+                                        {selectedAreaId && (
+                                            <>
+                                                <div className="checkout-form-group">
+                                                    <label htmlFor="pincode">PIN Code</label>
+                                                    <input
+                                                        id="pincode"
+                                                        type="text"
+                                                        value={pincode}
+                                                        readOnly
+                                                    />
+                                                </div>
+
+                                                
+                                            </>
                                         )}
 
                                         {deliveryMessage && (
@@ -492,48 +512,10 @@ function Checkout() {
                                                 {deliveryMessage}
                                             </p>
                                         )}
+                                        
+                                       
 
-                                        {deliveryAreas.length > 1 && (
-                                            <div className="checkout-form-group">
-                                                <label htmlFor="delivery-area">
-                                                    Select Your Locality
-                                                </label>
-
-                                                <select
-                                                    id="delivery-area"
-                                                    value={selectedAreaId}
-                                                    onChange={(e) => {
-                                                        const areaId = e.target.value;
-                                                        setSelectedAreaId(areaId);
-
-                                                        const area = deliveryAreas.find(
-                                                            (item) => String(item.area_id) === areaId
-                                                        );
-
-                                                        setDeliveryCharge(
-                                                            area ? Number(area.delivery_charge) : 0
-                                                        );
-                                                    }}
-                                                >
-                                                    <option value="">Choose your locality</option>
-
-                                                    {deliveryAreas.map((area) => (
-                                                        <option
-                                                            key={area.area_id}
-                                                            value={area.area_id}
-                                                        >
-                                                            {area.area_name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )}
-
-                                        {deliveryAreas.length === 1 && (
-                                            <p>
-                                                Locality: <strong>{deliveryAreas[0].area_name}</strong>
-                                            </p>
-                                        )}
+                                       
                                     </div>
                                 )}
 

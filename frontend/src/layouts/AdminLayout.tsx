@@ -10,7 +10,7 @@ import {
     Settings,
     LogOut,
     ChefHat,
-    Truck,
+    Truck,IndianRupee,
 } from "lucide-react";
 
 function AdminLayout() {
@@ -22,14 +22,14 @@ function AdminLayout() {
 
                 <h2 className="admin-logo">
                     <ChefHat size={28} />
-                    HomeFoods
+                    Amma's Secret Jar
                 </h2>
 
                 <div className="admin-profile">
-                    <div className="profile-icon">A</div>
+                    <div className="profile-icon">SJ</div>
                     <div>
                         <h4>Admin</h4>
-                        <p>Super Admin</p>
+                        <p>Shany Johnson</p>
                     </div>
                 </div>
 
@@ -39,7 +39,10 @@ function AdminLayout() {
                         <LayoutDashboard size={19} />
                         Dashboard
                     </NavLink>
-
+                    <NavLink to="/admin/customers">
+                        <Users size={19} />
+                        Customers
+                    </NavLink>
                     <NavLink to="/admin/categories">
                         <Tags size={19} />
                         Categories
@@ -54,22 +57,17 @@ function AdminLayout() {
                         <ShoppingBag size={19} />
                         Orders
                     </NavLink>
-
+                    <NavLink to="/admin/payments">
+                        <IndianRupee size={19} />
+                        Payments
+                    </NavLink>
                     <NavLink to="/admin/capacity">
                         <CalendarDays size={19} />
-                        Daily Capacity
+                        Daily Capacity Limit
                     </NavLink>
                     <NavLink to="/admin/place">
                         <Truck size={19} />
                         Product Delivery
-                    </NavLink>
-                    <NavLink to="/admin/customers">
-                        <Users size={19} />
-                        Customers
-                    </NavLink>
-                    <NavLink to="/admin/payments">
-                        
-                        Payments 
                     </NavLink>
                     <NavLink to="/admin/settings">
                         <Settings size={19} />
@@ -88,8 +86,8 @@ function AdminLayout() {
             {/* Main Content */}
             <main className="admin-main">
                 <header className="admin-header">
-                    <h3>Admin Panel</h3>
-                    <span>Welcome back!</span>
+                    <h3>Home - Dream - Kitchen</h3>
+                    <span>Welcome Shany!</span>
                 </header>
 
                 <section className="admin-content">

@@ -64,6 +64,8 @@ const MyOrders = () => {
 
     const [submittingOrder, setSubmittingOrder] =
         useState<number | null>(null);
+    const [cancellingOrder, setCancellingOrder] =
+        useState<number | null>(null);
 
     // Fetch bookings and payment history
     const fetchOrders = async () => {
@@ -141,7 +143,33 @@ const MyOrders = () => {
             hour12: true,
         });
     };
+    const getBookingProgress = (order: Order) => {
+        const steps = [
+            "Booking Submitted",
+            "Booking Approved",
+            "Advance Payment Verified",
+            "Preparing Order",
+            order.delivery_method === "delivery"
+                ? "Out for Delivery"
+                : "Ready for Pickup",
+            "Completed"
+        ];
 
+        const statusProgress: Record<string, number> = {
+            "Pending Admin Approval": 0,
+            "Approved – Awaiting Payment": 1,
+            "Confirmed": 2,
+            "Preparing Order": 3,
+            "Out for Delivery": 4,
+            "Ready for Pickup": 4,
+            "Completed": 5
+        };
+
+        return {
+            steps,
+            currentStep: statusProgress[order.order_status] ?? -1
+        };
+    };
     // Change payment method
     const handlePaymentMethodChange = (
         orderId: number,
@@ -228,6 +256,37 @@ const MyOrders = () => {
             );
         } finally {
             setSubmittingOrder(null);
+        }
+    };
+
+    const handleCancelBooking = async (order: Order) => {
+        const confirmed = window.confirm(
+            `Are you sure you want to cancel Booking #${order.order_id}? This action cannot be undone.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setCancellingOrder(order.order_id);
+
+            const response = await API.put(
+                `/orders/${order.order_id}/cancel`
+            );
+
+            alert(
+                response.data.message ||
+                "Your booking has been cancelled successfully."
+            );
+
+            await fetchOrders();
+
+        } catch (err: any) {
+            alert(
+                err.response?.data?.message ||
+                "Unable to cancel your booking."
+            );
+        } finally {
+            setCancellingOrder(null);
         }
     };
 
@@ -330,7 +389,48 @@ const MyOrders = () => {
                                             {order.order_status}
                                         </span>
                                     </div>
+                                    {/* Booking Progress Timeline */}
+                                    {order.order_status !== "Rejected" && (
+                                        <div className="booking-progress">
+                                            <h3>Booking Progress</h3>
 
+                                            {(() => {
+                                                const progress = getBookingProgress(order);
+
+                                                return (
+                                                    <div className="progress-timeline">
+                                                        {progress.steps.map((step, index) => {
+                                                            const isCompleted =
+                                                                index < progress.currentStep;
+
+                                                            const isCurrent =
+                                                                index === progress.currentStep;
+
+                                                            return (
+                                                                <div
+                                                                    className={`progress-step ${isCompleted ? "completed" : ""
+                                                                        } ${isCurrent ? "current" : ""}`}
+                                                                    key={step}
+                                                                >
+                                                                    <div className="progress-indicator">
+                                                                        {isCompleted ? "✓" : index + 1}
+                                                                    </div>
+
+                                                                    <div className="progress-step-content">
+                                                                        <strong>{step}</strong>
+
+                                                                        {isCurrent && (
+                                                                            <small>Current Status</small>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
                                     {/* Approval Message */}
                                     {isApproved && (
                                         <div className="booking-approved-message">
@@ -382,6 +482,29 @@ const MyOrders = () => {
                                             </strong>
                                         </div>
                                     </div>
+
+                                    {/* Customer Booking Cancellation */}
+                                    {["Pending Admin Approval", "Approved – Awaiting Payment"].includes(
+                                        order.order_status
+                                    ) &&
+                                        !payments.some(
+                                            payment =>
+                                                payment.order_id === order.order_id &&
+                                                payment.payment_type === "advance"
+                                        ) && (
+                                            <div className="booking-cancel-section">
+                                                <button
+                                                    type="button"
+                                                    className="cancel-booking-button"
+                                                    onClick={() => handleCancelBooking(order)}
+                                                    disabled={cancellingOrder === order.order_id}
+                                                >
+                                                    {cancellingOrder === order.order_id
+                                                        ? "Cancelling..."
+                                                        : "Cancel Booking"}
+                                                </button>
+                                            </div>
+                                        )}
 
                                     {/* Ordered Products */}
                                     <div className="order-products">
@@ -539,24 +662,33 @@ const MyOrders = () => {
                                             {(!advancePayment ||
                                                 advancePayment.verification_status === "Rejected") && (
                                                     <>
-                                                        {advancePayment?.verification_status === "Rejected" && (
-                                                            <div className="booking-rejected-message">
-                                                                <h4>
-                                                                    Payment submission rejected
-                                                                </h4>
 
-                                                                <p>
-                                                                    {advancePayment.admin_note ||
-                                                                        "Please check your payment details and submit again."}
-                                                                </p>
+                                                    {advancePayment?.verification_status === "Rejected" && (
+                                                        <div className="booking-rejected-message">
+                                                            <h4>Advance Payment Rejected</h4>
 
-                                                                <p>
-                                                                    Previous transaction
-                                                                    reference:{" "}
-                                                                    {advancePayment.transaction_reference}
-                                                                </p>
-                                                            </div>
-                                                        )}
+                                                            <p>
+                                                                Your advance payment submission could not be verified.
+                                                            </p>
+
+                                                            <p>
+                                                                <strong>Reason:</strong>{" "}
+                                                                {advancePayment.admin_note ||
+                                                                    "Please check your payment details and try again."}
+                                                            </p>
+
+                                                            <p>
+                                                                <strong>Previous transaction reference:</strong>{" "}
+                                                                {advancePayment.transaction_reference}
+                                                            </p>
+
+                                                            <p>
+                                                                Please verify your payment and submit the correct
+                                                                transaction reference again below.
+                                                            </p>
+                                                        </div>
+                                                    )}
+
 
                                                         <div className="payment-method-options">
                                                             <label>

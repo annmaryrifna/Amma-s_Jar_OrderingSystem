@@ -160,7 +160,20 @@
     background: #e1f1e5;
     color: #28613c;
 }
+.status-badge.preparing {
+    background: #e8e3f5;
+    color: #604a91;
+}
 
+.status-badge.out-for-delivery {
+    background: #dcecf5;
+    color: #28617a;
+}
+
+.status-badge.ready-pickup {
+    background: #fff0d9;
+    color: #95631c;
+}
 .status-badge.completed {
     background: #dcece8;
     color: #24594c;

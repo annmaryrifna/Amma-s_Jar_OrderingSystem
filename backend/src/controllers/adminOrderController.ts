@@ -36,6 +36,7 @@ export const getAllOrders = async (
                 o.street,
                 o.landmark,
                 o.pincode,
+                o.delivery_area_name,
                 o.special_instructions,
                 o.subtotal,
                 o.discount_percentage,
@@ -448,6 +449,92 @@ export const rejectOrder = async (req: Request, res: Response) => {
 
         return res.status(500).json({
             message: "Failed to reject booking."
+        });
+    }
+};
+// ==========================================
+// UPDATE ORDER PREPARATION / DELIVERY STATUS
+// ==========================================
+
+export const updateOrderStatus = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const orderId = Number(req.params.orderId);
+        const { orderStatus } = req.body;
+
+        if (!Number.isInteger(orderId) || orderId <= 0) {
+            return res.status(400).json({
+                message: "Invalid booking ID."
+            });
+        }
+
+        const allowedStatuses = [
+            "Preparing Order",
+            "Out for Delivery",
+            "Ready for Pickup",
+            "Completed"
+        ];
+
+        if (!allowedStatuses.includes(orderStatus)) {
+            return res.status(400).json({
+                message: "Invalid order status."
+            });
+        }
+
+        const [orders] = await pool.query<RowDataPacket[]>(
+            `SELECT order_id, order_status, delivery_method
+             FROM orders
+             WHERE order_id = ?`,
+            [orderId]
+        );
+
+        if (orders.length === 0) {
+            return res.status(404).json({
+                message: "Booking not found."
+            });
+        }
+
+        const order = orders[0];
+
+        // Only confirmed or in-progress bookings F be updated.
+        const validTransitions: Record<string, string[]> = {
+            "Confirmed": ["Preparing Order"],
+            "Preparing Order": order.delivery_method === "delivery"
+                ? ["Out for Delivery"]
+                : ["Ready for Pickup"],
+            "Out for Delivery": ["Completed"],
+            "Ready for Pickup": ["Completed"]
+        };
+
+        const nextStatuses = validTransitions[order.order_status] || [];
+
+        if (!nextStatuses.includes(orderStatus)) {
+            return res.status(409).json({
+                message: `Cannot change status from ${order.order_status} to ${orderStatus}.`
+            });
+        }
+
+        await pool.execute(
+            `UPDATE orders
+             SET order_status = ?,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE order_id = ?`,
+            [orderStatus, orderId]
+        );
+
+        return res.status(200).json({
+            message: "Booking status updated successfully.",
+            orderId,
+            orderStatus
+        });
+
+    } catch (error) {
+        console.error("Update order status error:", error);
+
+        return res.status(500).json({
+            message: "Unable to update booking status."
         });
     }
 };

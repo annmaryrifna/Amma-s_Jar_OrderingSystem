@@ -632,6 +632,34 @@ export const getCustomerOrders = async (
     }
 };
 
+export const getAllDeliveryAreas = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const [areas] = await pool.query<RowDataPacket[]>(
+            `SELECT area_id, area_name, pincode, delivery_charge
+             FROM delivery_areas
+             WHERE is_active = TRUE
+             ORDER BY area_name ASC`
+        );
+
+        return res.status(200).json({
+            available: areas.length > 0,
+            areas,
+            message: areas.length > 0
+                ? "Delivery localities retrieved successfully."
+                : "No delivery localities are currently available."
+        });
+    } catch (error) {
+        console.error("Get delivery areas error:", error);
+
+        return res.status(500).json({
+            message: "Unable to load delivery localities."
+        });
+    }
+};
+
 export const getDeliveryAreasByPincode = async (
     req: Request,
     res: Response
@@ -668,5 +696,108 @@ export const getDeliveryAreasByPincode = async (
         return res.status(500).json({
             message: "Unable to check delivery availability.",
         });
+    }
+};
+
+export const cancelCustomerOrder = async (
+    req: Request,
+    res: Response
+) => {
+    let connection;
+
+    try {
+        const userId = (req as any).user.id;
+        const orderId = Number(req.params.orderId);
+
+        if (!Number.isInteger(orderId) || orderId <= 0) {
+            return res.status(400).json({
+                message: "Invalid booking ID."
+            });
+        }
+
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        // Find and lock this customer's booking
+        const [orders] = await connection.query<RowDataPacket[]>(
+            `SELECT order_id, order_status
+             FROM orders
+             WHERE order_id = ? AND user_id = ?
+             FOR UPDATE`,
+            [orderId, userId]
+        );
+
+        if (orders.length === 0) {
+            await connection.rollback();
+
+            return res.status(404).json({
+                message: "Booking not found."
+            });
+        }
+
+        const order = orders[0];
+
+        // Only these two booking statuses can be cancelled
+        const allowedStatuses = [
+            "Pending Admin Approval",
+            "Approved – Awaiting Payment"
+        ];
+
+        if (!allowedStatuses.includes(order.order_status)) {
+            await connection.rollback();
+
+            return res.status(400).json({
+                message: "This booking can no longer be cancelled."
+            });
+        }
+
+        // Check whether any advance payment details were submitted
+        const [payments] = await connection.query<RowDataPacket[]>(
+            `SELECT payment_id
+     FROM payment_submissions
+     WHERE order_id = ?
+     AND payment_type = 'advance'
+     LIMIT 1`,
+            [orderId]
+        );
+
+        if (payments.length > 0) {
+            await connection.rollback();
+
+            return res.status(400).json({
+                message: "You cannot cancel this booking after submitting advance payment details."
+            });
+        }
+
+        // Cancel the booking
+        await connection.execute(
+            `UPDATE orders
+             SET order_status = 'Cancelled by Customer'
+             WHERE order_id = ? AND user_id = ?`,
+            [orderId, userId]
+        );
+
+        await connection.commit();
+
+        return res.status(200).json({
+            message: "Your booking has been cancelled successfully.",
+            orderStatus: "Cancelled by Customer"
+        });
+
+    } catch (error) {
+        if (connection) {
+            await connection.rollback();
+        }
+
+        console.error("Cancel customer booking error:", error);
+
+        return res.status(500).json({
+            message: "Unable to cancel your booking."
+        });
+
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 };

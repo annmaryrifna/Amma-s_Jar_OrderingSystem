@@ -1,8 +1,12 @@
 
 import { Router } from "express";
 
-import {getAllOrders, approveOrder,rejectOrder} from "../controllers/adminOrderController.js";
-
+import {
+    getAllOrders,
+    approveOrder,
+    rejectOrder,
+    updateOrderStatus
+} from "../controllers/adminOrderController.js";
 
 import { verifyToken } from "../middleware/authMiddleware.js";
 import { verifyAdmin } from "../middleware/adminMiddleware.js";
@@ -29,5 +33,12 @@ router.put(
     verifyToken,
     verifyAdmin,
     rejectOrder
+);
+// Admin: Update order preparation and delivery status
+router.put(
+    "/:orderId/status",
+    verifyToken,
+    verifyAdmin,
+    updateOrderStatus
 );
 export default router;

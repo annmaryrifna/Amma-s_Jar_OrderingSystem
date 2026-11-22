@@ -26,6 +26,7 @@ interface Order {
     street?: string;
     landmark?: string;
     pincode?: string;
+    delivery_area_name?: string;
     special_instructions?: string;
 
     subtotal: number;
@@ -218,12 +219,46 @@ const AdminOrderManagement = () => {
         if (status === "Pending Admin Approval") return "pending";
         if (status === "Approved – Awaiting Payment") return "awaiting";
         if (status === "Confirmed") return "confirmed";
+        if (status === "Preparing Order") return "preparing";
+        if (status === "Out for Delivery") return "out-for-delivery";
+        if (status === "Ready for Pickup") return "ready-pickup";
         if (status === "Completed") return "completed";
         if (status === "Rejected") return "rejected";
 
         return "default";
     };
+    const getNextStatusAction = (order: Order) => {
+        if (order.order_status === "Confirmed") {
+            return {
+                label: "Start Preparing",
+                status: "Preparing Order"
+            };
+        }
 
+        if (order.order_status === "Preparing Order") {
+            return order.delivery_method === "delivery"
+                ? {
+                    label: "Mark Out for Delivery",
+                    status: "Out for Delivery"
+                }
+                : {
+                    label: "Mark Ready for Pickup",
+                    status: "Ready for Pickup"
+                };
+        }
+
+        if (
+            order.order_status === "Out for Delivery" ||
+            order.order_status === "Ready for Pickup"
+        ) {
+            return {
+                label: "Mark Completed",
+                status: "Completed"
+            };
+        }
+
+        return null;
+    };
     const getItems = (order: Order) =>
         order.items || order.order_items || [];
 
@@ -263,6 +298,34 @@ const AdminOrderManagement = () => {
             );
         } finally {
             setRejecting(false);
+        }
+    };
+    const handleUpdateOrderStatus = async (
+        order: Order,
+        nextStatus: string
+    ) => {
+        const confirmed = window.confirm(
+            `Update Booking #${order.order_id} to "${nextStatus}"?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setError("");
+
+            const response = await API.put(
+                `/admin/orders/${order.order_id}/status`,
+                { orderStatus: nextStatus }
+            );
+
+            alert(response.data.message || "Booking status updated.");
+
+            await fetchOrders();
+        } catch (error: any) {
+            alert(
+                error.response?.data?.message ||
+                "Unable to update booking status."
+            );
         }
     };
     return (
@@ -459,7 +522,22 @@ const AdminOrderManagement = () => {
                                                     </button>
                                                 </>
                                             )}
+                                            {(() => {
+                                                const action = getNextStatusAction(order);
 
+                                                if (!action) return null;
+
+                                                return (
+                                                    <button
+                                                        className="approve-button"
+                                                        onClick={() =>
+                                                            handleUpdateOrderStatus(order, action.status)
+                                                        }
+                                                    >
+                                                        {action.label}
+                                                    </button>
+                                                );
+                                            })()}
                                         </div>
                                     </td>
 
@@ -540,10 +618,17 @@ const AdminOrderManagement = () => {
                             <div className="modal-section">
                                 <h4>Delivery Address</h4>
 
+                                <p>
+                                    <strong>Delivery Area:</strong>{" "}
+                                    {selectedOrder.delivery_area_name || "Not available"}
+                                </p>
+
                                 <p>{selectedOrder.house_name}</p>
                                 <p>{selectedOrder.street}</p>
                                 <p>{selectedOrder.landmark}</p>
-                                <p>{selectedOrder.pincode}</p>
+                                <p>
+                                    <strong>PIN Code:</strong> {selectedOrder.pincode}
+                                </p>
                             </div>
                         )}
 

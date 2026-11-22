@@ -112,7 +112,114 @@
     font-size: 11px;
     font-weight: 600;
 }
+/* Booking Progress Timeline */
 
+.booking-progress {
+    padding: 22px 0;
+    border-bottom: 1px solid #EEE9E1;
+}
+
+.booking-progress h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    color: #344E41;
+    margin: 0 0 22px;
+}
+
+.progress-timeline {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    position: relative;
+}
+
+.progress-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    gap: 10px;
+}
+
+.progress-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EEE9E1;
+    color: #89837B;
+    font-size: 13px;
+    font-weight: 600;
+    border: 2px solid #DDD5C9;
+    z-index: 1;
+}
+
+.progress-step.completed .progress-indicator {
+    background: #344E41;
+    border-color: #344E41;
+    color: white;
+}
+
+.progress-step.current .progress-indicator {
+    background: #A65D3F;
+    border-color: #A65D3F;
+    color: white;
+    box-shadow: 0 0 0 4px #f5e8df;
+}
+
+.progress-step-content {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.progress-step-content strong {
+    font-size: 11px;
+    color: #89837B;
+    line-height: 1.4;
+}
+
+.progress-step.completed .progress-step-content strong {
+    color: #344E41;
+}
+
+.progress-step.current .progress-step-content strong {
+    color: #A65D3F;
+}
+
+.progress-step-content small {
+    font-size: 10px;
+    color: #A65D3F;
+    font-weight: 600;
+}
+
+@media (max-width: 600px) {
+    .progress-timeline {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0;
+    }
+
+    .progress-step {
+        flex-direction: row;
+        text-align: left;
+        align-items: center;
+        gap: 14px;
+        min-height: 65px;
+    }
+
+    .progress-step-content strong {
+        font-size: 13px;
+    }
+
+    .progress-step-content small {
+        font-size: 11px;
+    }
+}
 .order-details {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -368,7 +475,35 @@
     line-height: 1.6;
     margin: 0;
 }
+/* Customer Booking Cancellation */
+.booking-cancel-section {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 0;
+    border-bottom: 1px solid #EEE9E1;
+}
 
+.cancel-booking-button {
+    background: transparent;
+    color: #A65D3F;
+    border: 1px solid #A65D3F;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-booking-button:hover {
+    background: #A65D3F;
+    color: #FFFFFF;
+}
+
+.cancel-booking-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 .booking-rejected-message {
     margin-top: 18px;
     padding: 14px;
