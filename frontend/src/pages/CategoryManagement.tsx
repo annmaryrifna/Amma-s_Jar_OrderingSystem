@@ -1,5 +1,7 @@
+
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import "./css/CategoryManagement.css";
 
 interface Category {
     category_id: number;
@@ -7,7 +9,7 @@ interface Category {
     parent_category_id: number | null;
     description: string | null;
     image: string | null;
-    is_active: boolean;
+    is_active: boolean | number;
 }
 
 function CategoryManagement() {
@@ -17,15 +19,18 @@ function CategoryManagement() {
     const [description, setDescription] = useState("");
     const [image, setImage] = useState<File | null>(null);
     const [message, setMessage] = useState("");
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [search, setSearch] = useState("");
+    const [saving, setSaving] = useState(false);
 
     const mainCategories = categories.filter(
-        (category) => category.parent_category_id === null
+        category => category.parent_category_id === null
     );
 
     const fetchCategories = async () => {
         try {
-            const response = await API.get("/categories");
-            setCategories(response.data.categories);
+            const response = await API.get("/categories/admin/all");
+            setCategories(response.data.categories || []);
         } catch (error) {
             console.error("Error fetching categories:", error);
             setMessage("Unable to load categories.");
@@ -36,15 +41,22 @@ function CategoryManagement() {
         fetchCategories();
     }, []);
 
+    const resetForm = () => {
+        setCategoryName("");
+        setParentCategoryId("");
+        setDescription("");
+        setImage(null);
+        setEditingId(null);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (saving) return;
+
         const formData = new FormData();
         formData.append("category_name", categoryName);
-        formData.append(
-            "parent_category_id",
-            parentCategoryId
-        );
+        formData.append("parent_category_id", parentCategoryId);
         formData.append("description", description);
 
         if (image) {
@@ -52,107 +64,341 @@ function CategoryManagement() {
         }
 
         try {
-            const response = await API.post(
-                "/categories",
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
+            setSaving(true);
+
+            if (editingId !== null) {
+                await API.put(`/categories/${editingId}`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                setMessage("Category updated successfully.");
+            } else {
+                await API.post("/categories", formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                setMessage("Category added successfully.");
+            }
+
+            resetForm();
+            await fetchCategories();
+
+        } catch (error: any) {
+            setMessage(
+                error.response?.data?.message ||
+                "Unable to save category."
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleEdit = (category: Category) => {
+        setEditingId(category.category_id);
+        setCategoryName(category.category_name);
+        setParentCategoryId(
+            category.parent_category_id
+                ? String(category.parent_category_id)
+                : ""
+        );
+        setDescription(category.description || "");
+        setImage(null);
+        setMessage("");
+    };
+
+    const handleStatusChange = async (category: Category) => {
+        const isActive = Number(category.is_active) === 1;
+
+        const confirmed = window.confirm(
+            `Are you sure you want to ${isActive ? "deactivate" : "activate"} "${category.category_name}"?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const newStatus = !isActive;
+
+            await API.patch(
+                `/categories/${category.category_id}/status`,
+                { is_active: newStatus }
             );
 
-            setMessage(response.data.message);
-            setCategoryName("");
-            setParentCategoryId("");
-            setDescription("");
-            setImage(null);
+            setMessage(
+                `Category ${newStatus ? "activated" : "deactivated"} successfully.`
+            );
 
             await fetchCategories();
 
         } catch (error: any) {
             setMessage(
                 error.response?.data?.message ||
-                "Unable to add category."
+                "Unable to update category status."
             );
         }
     };
 
+    const handleDelete = async (category: Category) => {
+        const confirmed = window.confirm(
+            `Permanently remove "${category.category_name}"? This action cannot be undone.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await API.delete(`/categories/${category.category_id}`);
+
+            setMessage("Category removed successfully.");
+
+            if (editingId === category.category_id) {
+                resetForm();
+            }
+
+            await fetchCategories();
+
+        } catch (error: any) {
+            setMessage(
+                error.response?.data?.message ||
+                "Unable to remove category."
+            );
+        }
+    };
+
+    const getSubcategories = (parentId: number) =>
+        categories.filter(
+            category => category.parent_category_id === parentId
+        );
+
+    const filteredMainCategories = mainCategories.filter(category => {
+        const query = search.toLowerCase();
+
+        const matchesMain =
+            category.category_name.toLowerCase().includes(query);
+
+        const matchesChild = getSubcategories(category.category_id).some(
+            child => child.category_name.toLowerCase().includes(query)
+        );
+
+        return matchesMain || matchesChild;
+    });
+
+    const renderCategoryActions = (category: Category) => {
+        const active = Number(category.is_active) === 1;
+
+        return (
+            <div className="category-actions">
+                <button
+                    type="button"
+                    className="category-edit-btn"
+                    onClick={() => handleEdit(category)}
+                >
+                    Edit
+                </button>
+
+                <button
+                    type="button"
+                    className={active ? "category-deactivate-btn" : "category-activate-btn"}
+                    onClick={() => handleStatusChange(category)}
+                >
+                    {active ? "Deactivate" : "Activate"}
+                </button>
+
+                <button
+                    type="button"
+                    className="category-remove-btn"
+                    onClick={() => handleDelete(category)}
+                >
+                    Remove
+                </button>
+            </div>
+        );
+    };
+
     return (
         <div className="category-management">
-            <h2>Category Management</h2>
-            <p>Manage your sweets and snacks categories.</p>
+            <div className="category-page-header">
+                <div>
+                    <h2>Category Management</h2>
+                    <p>Organize and manage your sweets and snacks categories.</p>
+                </div>
 
-            <form onSubmit={handleSubmit}>
-                <h3>Add New Category</h3>
+                <div className="category-count">
+                    {categories.length} Categories
+                </div>
+            </div>
 
-                <label>Category Name</label>
-                <input
-                    type="text"
-                    value={categoryName}
-                    onChange={(e) => setCategoryName(e.target.value)}
-                    placeholder="Enter category name"
-                    required
-                />
+            <div className="category-management-layout">
 
-                <label>Main Category</label>
-                <select
-                    value={parentCategoryId}
-                    onChange={(e) => setParentCategoryId(e.target.value)}
-                >
-                    <option value="">None (Main Category)</option>
+                {/* LEFT: ADD / EDIT FORM */}
+                <section className="category-form-section">
+                    <form onSubmit={handleSubmit}>
+                        <h3>
+                            {editingId !== null ? "Edit Category" : "Add New Category"}
+                        </h3>
 
-                    {mainCategories.map((category) => (
-                        <option
-                            key={category.category_id}
-                            value={category.category_id}
+                        <label>Category Name</label>
+                        <input
+                            type="text"
+                            value={categoryName}
+                            onChange={e => setCategoryName(e.target.value)}
+                            placeholder="Enter category name"
+                            required
+                        />
+
+                        <label>Main Category</label>
+                        <select
+                            value={parentCategoryId}
+                            onChange={e => setParentCategoryId(e.target.value)}
                         >
-                            {category.category_name}
-                        </option>
-                    ))}
-                </select>
+                            <option value="">None (Main Category)</option>
 
-                <label>Description</label>
-                <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter category description"
-                />
+                            {mainCategories
+                                .filter(category => category.category_id !== editingId)
+                                .map(category => (
+                                    <option
+                                        key={category.category_id}
+                                        value={category.category_id}
+                                    >
+                                        {category.category_name}
+                                    </option>
+                                ))}
+                        </select>
 
-                <label>Category Image</label>
-                <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(e) =>
-                        setImage(e.target.files?.[0] || null)
-                    }
-                />
+                        <label>Description</label>
+                        <textarea
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            placeholder="Enter category description"
+                        />
 
-                <button type="submit">Add Category</button>
-            </form>
+                        <label>Category Image</label>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={e => setImage(e.target.files?.[0] || null)}
+                        />
 
-            {message && <p>{message}</p>}
+                        <div className="category-form-actions">
+                            <button type="submit" disabled={saving}>
+                                {saving
+                                    ? "Saving..."
+                                    : editingId !== null
+                                        ? "Save Changes"
+                                        : "Add Category"}
+                            </button>
 
-            <h3>Existing Categories</h3>
+                            {editingId !== null && (
+                                <button
+                                    type="button"
+                                    className="category-cancel-btn"
+                                    onClick={resetForm}
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
+                    </form>
 
-            <div>
-                {categories.map((category) => (
-                    <div key={category.category_id}>
-                        {category.image && (
-                            <img
-                                src={`http://localhost:5000${category.image}`}
-                                alt={category.category_name}
-                                width="80"
-                            />
-                        )}
+                    {message && (
+                        <div className="category-message">
+                            {message}
+                        </div>
+                    )}
+                </section>
 
-                        <strong>{category.category_name}</strong>
+                {/* RIGHT: EXISTING CATEGORIES */}
+                <section className="existing-categories-section">
+                    <div className="existing-categories-header">
+                        <h3>Existing Categories</h3>
 
-                        {category.parent_category_id && (
-                            <span> (Subcategory)</span>
+                        <input
+                            type="text"
+                            placeholder="Search categories..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="main-category-list">
+                        {filteredMainCategories.length === 0 ? (
+                            <p className="category-empty">
+                                No categories found.
+                            </p>
+                        ) : (
+                            filteredMainCategories.map(main => {
+                                const subcategories = getSubcategories(
+                                    main.category_id
+                                ).filter(child =>
+                                    child.category_name.toLowerCase().includes(search.toLowerCase()) ||
+                                    main.category_name.toLowerCase().includes(search.toLowerCase())
+                                );
+
+                                return (
+                                    <div
+                                        className="main-category-card"
+                                        key={main.category_id}
+                                    >
+                                        <div className="main-category-details">
+                                            {main.image && (
+                                                <img
+                                                    src={`http://localhost:5000${main.image}`}
+                                                    alt={main.category_name}
+                                                />
+                                            )}
+
+                                            <div className="category-info">
+                                                <h4>{main.category_name}</h4>
+                                                <span className={`category-status ${Number(main.is_active) === 1 ? "active" : "inactive"}`}>
+                                                    {Number(main.is_active) === 1 ? "Active" : "Inactive"}
+                                                </span>
+                                                {main.description && (
+                                                    <p>{main.description}</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {renderCategoryActions(main)}
+
+                                        <div className="subcategory-section">
+                                            <h5>Subcategories</h5>
+
+                                            {subcategories.length === 0 ? (
+                                                <p className="no-subcategories">
+                                                    No subcategories
+                                                </p>
+                                            ) : (
+                                                subcategories.map(child => (
+                                                    <div
+                                                        className="subcategory-card"
+                                                        key={child.category_id}
+                                                    >
+                                                        <div className="subcategory-details">
+                                                            {child.image && (
+                                                                <img
+                                                                    src={`http://localhost:5000${child.image}`}
+                                                                    alt={child.category_name}
+                                                                />
+                                                            )}
+
+                                                            <div>
+                                                                <strong>{child.category_name}</strong>
+                                                                <span className={`category-status ${Number(child.is_active) === 1 ? "active" : "inactive"}`}>
+                                                                    {Number(child.is_active) === 1 ? "Active" : "Inactive"}
+                                                                </span>
+                                                                {child.description && (
+                                                                    <p>{child.description}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {renderCategoryActions(child)}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
                         )}
                     </div>
-                ))}
+                </section>
             </div>
         </div>
     );

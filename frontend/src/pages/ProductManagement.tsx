@@ -1,5 +1,7 @@
+
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import "./css/ProductManagement.css";
 
 interface Category {
     category_id: number;
@@ -30,19 +32,19 @@ function ProductManagement() {
     const [priceQuantity, setPriceQuantity] = useState("");
     const [unit, setUnit] = useState("pieces");
     const [purchaseOptions, setPurchaseOptions] = useState("");
-    const [capacityFactor, setCapacityFactor] = useState("1");
     const [image, setImage] = useState<File | null>(null);
 
     const [message, setMessage] = useState("");
+    const [saving, setSaving] = useState(false);
 
     const subcategories = categories.filter(
-        (category) => category.parent_category_id !== null
+        category => category.parent_category_id !== null
     );
 
     const fetchCategories = async () => {
         try {
             const response = await API.get("/categories");
-            setCategories(response.data.categories);
+            setCategories(response.data.categories || []);
         } catch (error) {
             console.error("Category loading error:", error);
         }
@@ -51,7 +53,7 @@ function ProductManagement() {
     const fetchProducts = async () => {
         try {
             const response = await API.get("/products");
-            setProducts(response.data.products);
+            setProducts(response.data.products || []);
         } catch (error) {
             console.error("Product loading error:", error);
             setMessage("Unable to load products.");
@@ -66,6 +68,20 @@ function ProductManagement() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (saving) return;
+
+        const quantities = purchaseOptions
+            .split(",")
+            .map(value => Number(value.trim()));
+
+        if (
+            !quantities.length ||
+            quantities.some(value => !Number.isFinite(value) || value <= 0)
+        ) {
+            setMessage("Please enter valid purchase quantities.");
+            return;
+        }
+
         const formData = new FormData();
 
         formData.append("product_name", productName);
@@ -74,24 +90,16 @@ function ProductManagement() {
         formData.append("price", price);
         formData.append("price_quantity", priceQuantity);
         formData.append("unit", unit);
-        formData.append(
-            "purchase_options",
-            JSON.stringify(
-                purchaseOptions
-                    .split(",")
-                    .map((value) => Number(value.trim()))
-            )
-        );
-        formData.append(
-            "capacity_units_per_sale_unit",
-            capacityFactor
-        );
+        formData.append("purchase_options", JSON.stringify(quantities));
 
         if (image) {
             formData.append("image", image);
         }
 
         try {
+            setSaving(true);
+            setMessage("");
+
             const response = await API.post(
                 "/products",
                 formData,
@@ -111,8 +119,13 @@ function ProductManagement() {
             setPriceQuantity("");
             setUnit("pieces");
             setPurchaseOptions("");
-            setCapacityFactor("1");
             setImage(null);
+
+            const fileInput = document.getElementById(
+                "product-image"
+            ) as HTMLInputElement | null;
+
+            if (fileInput) fileInput.value = "";
 
             await fetchProducts();
 
@@ -121,141 +134,199 @@ function ProductManagement() {
                 error.response?.data?.message ||
                 "Unable to add product."
             );
+        } finally {
+            setSaving(false);
         }
     };
 
     return (
         <div className="product-management">
-            <h2>Product Management</h2>
-            <p>Add and manage your homemade sweets and snacks.</p>
 
-            <form onSubmit={handleSubmit}>
-                <h3>Add New Product</h3>
+            {/* PAGE HEADER */}
+            <div className="product-page-header">
+                <h2>Product Management</h2>
+                <p>Add and manage your homemade sweets and snacks.</p>
+            </div>
 
-                <label>Product Name</label>
-                <input
-                    type="text"
-                    value={productName}
-                    onChange={(e) => setProductName(e.target.value)}
-                    placeholder="Example: Laddu"
-                    required
-                />
+            <div className="product-management-layout">
 
-                <label>Subcategory</label>
-                <select
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    required
-                >
-                    <option value="">Select Subcategory</option>
+                {/* LEFT: ADD PRODUCT FORM */}
+                <section className="product-form-section">
 
-                    {subcategories.map((category) => (
-                        <option
-                            key={category.category_id}
-                            value={category.category_id}
+                    <form onSubmit={handleSubmit}>
+                        <h3>Add New Product</h3>
+
+                        <label>Product Name</label>
+                        <input
+                            type="text"
+                            value={productName}
+                            onChange={e => setProductName(e.target.value)}
+                            placeholder="Example: Laddu"
+                            required
+                        />
+
+                        <label>Subcategory</label>
+                        <select
+                            value={categoryId}
+                            onChange={e => setCategoryId(e.target.value)}
+                            required
                         >
-                            {category.category_name}
-                        </option>
-                    ))}
-                </select>
+                            <option value="">Select Subcategory</option>
 
-                <label>Description</label>
-                <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe your product"
-                />
+                            {subcategories.map(category => (
+                                <option
+                                    key={category.category_id}
+                                    value={category.category_id}
+                                >
+                                    {category.category_name}
+                                </option>
+                            ))}
+                        </select>
 
-                <label>Product Image</label>
-                <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(e) =>
-                        setImage(e.target.files?.[0] || null)
-                    }
-                />
+                        <label>Description</label>
+                        <textarea
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            placeholder="Describe your product"
+                        />
 
-                <label>Price (₹)</label>
-                <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    required
-                />
+                        <label>Product Image</label>
+                        <input
+                            id="product-image"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={e =>
+                                setImage(e.target.files?.[0] || null)
+                            }
+                        />
 
-                <label>Price Quantity</label>
-                <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={priceQuantity}
-                    onChange={(e) => setPriceQuantity(e.target.value)}
-                    placeholder="Example: 10"
-                    required
-                />
+                        <label>Price (₹)</label>
+                        <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={price}
+                            onChange={e => setPrice(e.target.value)}
+                            placeholder="Enter price"
+                            required
+                        />
 
-                <label>Unit</label>
-                <select
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                >
-                    <option value="pieces">Pieces</option>
-                    <option value="grams">Grams</option>
-                    <option value="kg">Kilograms</option>
-                </select>
+                        <label>Price Quantity</label>
+                        <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={priceQuantity}
+                            onChange={e => setPriceQuantity(e.target.value)}
+                            placeholder="Example: 10"
+                            required
+                        />
 
-                <label>Available Purchase Quantities</label>
-                <input
-                    type="text"
-                    value={purchaseOptions}
-                    onChange={(e) => setPurchaseOptions(e.target.value)}
-                    placeholder="Example: 10, 20, 25, 50, 100"
-                    required
-                />
+                        <label>Unit</label>
+                        <select
+                            value={unit}
+                            onChange={e => setUnit(e.target.value)}
+                        >
+                            <option value="pieces">Pieces</option>
+                            <option value="grams">Grams</option>
+                            <option value="kg">Kilograms</option>
+                        </select>
 
-                <label>Capacity Units Per Sale Unit</label>
-                <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={capacityFactor}
-                    onChange={(e) => setCapacityFactor(e.target.value)}
-                    required
-                />
+                        <label>Available Purchase Quantities</label>
+                        <input
+                            type="text"
+                            value={purchaseOptions}
+                            onChange={e => setPurchaseOptions(e.target.value)}
+                            placeholder="Example: 10, 20, 25, 50, 100"
+                            required
+                        />
 
-                <button type="submit">Add Product</button>
-            </form>
+                        <button type="submit" disabled={saving}>
+                            {saving ? "Adding Product..." : "Add Product"}
+                        </button>
+                    </form>
 
-            {message && <p>{message}</p>}
+                    {message && (
+                        <div className="product-message">
+                            {message}
+                        </div>
+                    )}
 
-            <h3>Existing Products</h3>
+                </section>
 
-            <div>
-                {products.map((product) => (
-                    <div key={product.product_id}>
-                        {product.image && (
-                            <img
-                                src={`http://localhost:5000${product.image}`}
-                                alt={product.product_name}
-                                width="90"
-                            />
-                        )}
+                {/* RIGHT: EXISTING PRODUCTS */}
+                <section className="existing-products-section">
 
-                        <h4>{product.product_name}</h4>
-
-                        <p>
-                            {product.main_category_name} /{" "}
-                            {product.subcategory_name}
-                        </p>
-
-                        <p>
-                            ₹{product.price} per{" "}
-                            {product.price_quantity} {product.unit}
-                        </p>
+                    <div className="existing-products-header">
+                        <h3>Existing Products</h3>
+                        <span className="product-count">
+                            {products.length} Products
+                        </span>
                     </div>
-                ))}
+
+                    {products.length === 0 ? (
+                        <div className="product-empty">
+                            No products available yet.
+                        </div>
+                    ) : (
+                        <div className="product-list">
+
+                            {products.map(product => (
+                                <div
+                                    className="product-card"
+                                    key={product.product_id}
+                                >
+
+                                    {product.image ? (
+                                        <img
+                                            className="product-card-image"
+                                            src={`http://localhost:5000${product.image}`}
+                                            alt={product.product_name}
+                                        />
+                                    ) : (
+                                        <div className="product-image-placeholder">
+                                            No Image
+                                        </div>
+                                    )}
+
+                                    <div className="product-card-content">
+
+                                        <div className="product-card-title">
+                                            <h4>{product.product_name}</h4>
+
+                                            <span className={`product-status ${Number(product.is_active) === 1
+                                                    ? "active"
+                                                    : "inactive"
+                                                }`}>
+                                                {Number(product.is_active) === 1
+                                                    ? "Active"
+                                                    : "Inactive"}
+                                            </span>
+                                        </div>
+
+                                        <p className="product-category">
+                                            {product.main_category_name} /{" "}
+                                            {product.subcategory_name}
+                                        </p>
+
+                                        <p className="product-price">
+                                            ₹{Number(product.price).toFixed(2)}
+                                        </p>
+
+                                        <p className="product-quantity">
+                                            Per {product.price_quantity}{" "}
+                                            {product.unit}
+                                        </p>
+
+                                    </div>
+                                </div>
+                            ))}
+
+                        </div>
+                    )}
+
+                </section>
+
             </div>
         </div>
     );

@@ -14,6 +14,7 @@ import Checkout from "./pages/Checkout";
 import MyOrders from "./pages/MyOrders";
 import ProductDelivery from "./pages/ProductDeliveryPlaces";
 import AdminPaymentManagement from "./pages/AdminPaymentManagement";
+import RegisteredCustomers from "./pages/RegisteredCustomers";
 import { CartProvider } from "./context/CartContext";
 function App() {
   return (
@@ -43,8 +44,8 @@ function App() {
          <Route path="categories" element={<CategoryManagement />} />
           <Route path="products" element={<ProductManagement />} /> 
           <Route path="orders" element={<AdminOrderManagement />} />
-            <Route path="payments" element={<AdminPaymentManagement />}
-            />
+            <Route path="payments" element={<AdminPaymentManagement />} />
+            <Route path="customers" element={<RegisteredCustomers />} />
         </Route>
 
       </Routes>
