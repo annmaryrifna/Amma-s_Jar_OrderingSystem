@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import API from "../services/api";
 import "./css/AdminOrderManagement.css";
+import "./css/AdminPaymentManagement.css"; 
 
 interface OrderItem {
     product_id: number;
@@ -329,9 +330,9 @@ const AdminOrderManagement = () => {
         }
     };
     return (
-        <div className="admin-orders">
+        <div className="admin-payments">
 
-            <div className="orders-header">
+            <div className="admin-payments-header">
                 <div>
                     <h2>Order Management</h2>
                     <p>Manage customer bookings and payments.</p>

@@ -1,10 +1,9 @@
 .product-delivery-page {
-    color: #34312d;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    max-width: 1500px;
-    margin: 0 auto;
+    
+            padding: 28px;
+            color: #34312D;
+            width: 100%;
+        
 }
 
 .delivery-page-heading,
@@ -24,18 +23,18 @@
 }
 
 .delivery-page-heading h1 {
-    margin: 5px 0 6px;
+    font-family: "Cormorant Garamond", serif;
+    font-size: 30px;
+    font-weight: 600;
     color: #344e41;
-    font-size: 28px;
+    margin: 0 0 5px;
 }
 
-.delivery-page-heading p,
-.delivery-panel-heading p {
-    color: #77736d;
-    font-size: 13px;
+.delivery-page-heading p {
+    color: #777;
+    font-size: 14px;
     margin: 0;
 }
-
 .delivery-refresh-btn,
 .delivery-secondary-btn,
 .delivery-text-btn {
@@ -101,6 +100,7 @@
     border-radius: 12px;
     padding: 17px;
     box-shadow: 0 2px 8px rgba(52, 49, 45, .035);
+    margin-top: 30px;
 }
 
 .delivery-stat-icon {
@@ -145,12 +145,11 @@
 
 .delivery-panel {
     background: #fff;
-    border: 1px solid #ebe7df;
-    border-radius: 12px;
+    border: 1px solid #e8e1d6;
+    border-radius: 10px;
     padding: 22px;
     box-shadow: 0 2px 8px rgba(52, 49, 45, .035);
 }
-
 .delivery-panel-heading {
     margin-bottom: 19px;
 }

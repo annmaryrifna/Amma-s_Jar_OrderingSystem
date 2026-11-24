@@ -1,0 +1,161 @@
+.customer-profile-page {
+    min-height: 100vh;
+    background: #F8F5EF;
+    color: #34312D;
+}
+
+.profile-page-header {
+    min-height: 76px;
+    padding: 15px 7%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #EAE4D9;
+}
+
+.profile-brand {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 27px;
+    font-weight: 700;
+    color: #344E41;
+    text-decoration: none;
+}
+
+.profile-back-link {
+    color: #344E41;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.profile-back-link:hover {
+    color: #A65D3F;
+}
+
+.profile-content {
+    max-width: 650px;
+    margin: 55px auto;
+    padding: 0 20px;
+}
+
+.profile-card {
+    background: #FFFFFF;
+    padding: 35px;
+    border: 1px solid #EAE4D9;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(52, 49, 45, 0.05);
+}
+
+.profile-card-heading {
+    margin-bottom: 30px;
+}
+
+.profile-card-heading h1 {
+    margin: 0 0 8px;
+    color: #344E41;
+    font-family: "Cormorant Garamond", serif;
+    font-size: 32px;
+}
+
+.profile-card-heading p {
+    margin: 0;
+    color: #77716A;
+    font-size: 14px;
+}
+
+.profile-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 22px;
+}
+
+.profile-form-group label {
+    color: #34312D;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.profile-form-group input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px 14px;
+    border: 1px solid #DED7CC;
+    border-radius: 7px;
+    background: #FFFFFF;
+    color: #34312D;
+    font-size: 14px;
+    outline: none;
+}
+
+.profile-form-group input:focus {
+    border-color: #344E41;
+}
+
+.profile-form-group input:disabled {
+    background: #F8F5EF;
+    color: #68635D;
+    cursor: not-allowed;
+}
+
+.profile-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.profile-actions button {
+    padding: 12px 25px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.profile-edit-button,
+.profile-save-button {
+    background: #344E41;
+    color: #FFFFFF;
+    border: 1px solid #344E41;
+}
+
+.profile-edit-button:hover,
+.profile-save-button:hover {
+    background: #263B31;
+}
+
+.profile-cancel-button {
+    background: #FFFFFF;
+    color: #A65D3F;
+    border: 1px solid #A65D3F;
+}
+
+.profile-cancel-button:hover {
+    background: #A65D3F;
+    color: #FFFFFF;
+}
+
+.profile-actions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .profile-page-header {
+        padding: 15px 5%;
+        gap: 12px;
+    }
+
+    .profile-brand {
+        font-size: 22px;
+    }
+
+    .profile-content {
+        margin: 30px auto;
+    }
+
+    .profile-card {
+        padding: 24px 18px;
+    }
+}

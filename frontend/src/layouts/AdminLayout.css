@@ -136,7 +136,25 @@
 .admin-content {
     padding: 28px;
 }
+.admin-logout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    color: #777;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+}
 
+.admin-logout:hover {
+    background: #f8eee9;
+    color: #a65d3f;
+    border-radius: 7px;
+}
 /* Responsive */
 @media (max-width: 768px) {
     .admin-sidebar {

@@ -13,16 +13,15 @@
 
 .orders-header h2 {
     font-family: "Cormorant Garamond", serif;
-    font-size: 30px;
-    color: #344E41;
-    margin: 0 0 5px;
+        font-size: 30px;
+        color: #344E41;
+        margin: 0 0 5px;
 }
 
 .orders-header p {
     color: #777;
     margin: 0;
 }
-
 .refresh-button {
     background: #344E41;
     color: white;

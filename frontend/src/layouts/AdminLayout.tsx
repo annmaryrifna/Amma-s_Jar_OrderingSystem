@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet,useNavigate } from "react-router-dom";
 import "./AdminLayout.css";
 import {
     LayoutDashboard,
@@ -14,7 +14,14 @@ import {
 } from "lucide-react";
 
 function AdminLayout() {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        sessionStorage.removeItem("token");
+        navigate("/", { replace: true });
+    };
     return (
+        
         <div className="admin-layout">
 
             {/* Sidebar */}
@@ -73,13 +80,16 @@ function AdminLayout() {
                         <Settings size={19} />
                         Settings
                     </NavLink>
+                    <button
+                        className="admin-logout"
+                        onClick={handleLogout}
+                        type="button"
+                    >
+                        <LogOut size={19} />
+                        Logout
+                    </button>
 
                 </nav>
-
-                <button className="admin-logout">
-                    <LogOut size={19} />
-                    Logout
-                </button>
 
             </aside>
 

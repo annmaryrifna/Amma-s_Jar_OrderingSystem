@@ -10,6 +10,8 @@ import adminOrderRoutes from "./routes/adminOrderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import adminPaymentRoutes from "./routes/adminPaymentRoutes.js";
 import deliveryRoutes from "./routes/deliveryPlaceRoutes.js";
+import adminCustomerRoutes from "./routes/adminCustomerRoutes.js";
+import adminAccountRoutes from "./routes/adminAccountRoutes.js";
 const app = express();
 const PORT = 5000;
 
@@ -24,6 +26,8 @@ app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin/payments", adminPaymentRoutes);
 app.use("/api/admin/place", deliveryRoutes);
+app.use("/api/admin/customers", adminCustomerRoutes);
+app.use("/api/admin/account", adminAccountRoutes);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // Test route
 app.get("/", (req, res) => {

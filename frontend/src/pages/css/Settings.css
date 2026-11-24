@@ -1,0 +1,127 @@
+.settings-page {
+    padding: 25px;
+    color: #34312D;
+}
+
+
+.settings-page-header h2 {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 30px;
+    color: #344E41;
+    margin: 0;
+}
+
+.settings-page-header p {
+    color: #777;
+    font-size: 14px;
+    margin: 0;
+}
+
+.settings-section {
+    max-width: 750px;
+    background: #ffffff;
+    border: 1px solid #e8e1d7;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+.settings-section-heading {
+    margin-bottom: 24px;
+}
+
+.settings-section-heading h3 {
+    color: #344E41;
+    font-size: 18px;
+    margin-bottom: 7px;
+}
+
+.settings-section-heading p {
+    color: #888;
+    font-size: 13px;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-field label {
+    color: #34312D;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.settings-field input,
+.settings-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid #d8d1c7;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 14px;
+    color: #34312D;
+    outline: none;
+    resize: vertical;
+}
+
+.settings-field input:focus,
+.settings-field textarea:focus {
+    border-color: #344E41;
+}
+
+.settings-save-button {
+    align-self: center;
+    background: #344E41;
+    color: #ffffff;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.settings-save-button:hover {
+    background: #263b30;
+}
+.admin-account-container {
+    margin-top: 25px;
+}
+
+.admin-account-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.admin-account-card {
+    padding: 20px;
+    background: #fdfcf9;
+    border: 1px solid #e8e1d7;
+    border-radius: 10px;
+}
+
+.admin-account-card h4 {
+    color: #344E41;
+    font-size: 16px;
+    margin: 0 0 20px;
+}
+@media (max-width: 600px) {
+    .settings-page {
+        padding: 15px;
+    }
+
+    .settings-section {
+        padding: 18px;
+    }
+}

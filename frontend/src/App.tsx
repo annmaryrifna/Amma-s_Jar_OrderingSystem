@@ -7,11 +7,14 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminLayout from "./layouts/AdminLayout";
 import CategoryManagement from "./pages/CategoryManagement";
 import ProductManagement from "./pages/ProductManagement"
+import DailyCapacityLimit from "./pages/DailyCapacityLimit";
 import AdminOrderManagement from "./pages/AdminOrderManagement";
+import Settings from "./pages/Settings";
 import Shop from "./pages/Shop";
 import Cart from "./pages/Cart"; 
 import Checkout from "./pages/Checkout";
 import MyOrders from "./pages/MyOrders";
+import CustomerProfile from "./pages/CustomerProfile";
 import ProductDelivery from "./pages/ProductDeliveryPlaces";
 import AdminPaymentManagement from "./pages/AdminPaymentManagement";
 import RegisteredCustomers from "./pages/RegisteredCustomers";
@@ -36,6 +39,7 @@ function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/customer/orders" element={<MyOrders />} />
+          <Route path="/customer/profile" element={<CustomerProfile />} />
 
         {/* Admin Pages */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -46,6 +50,8 @@ function App() {
           <Route path="orders" element={<AdminOrderManagement />} />
             <Route path="payments" element={<AdminPaymentManagement />} />
             <Route path="customers" element={<RegisteredCustomers />} />
+            <Route path="capacity" element={<DailyCapacityLimit />} />
+            <Route path="settings" element={<Settings />} />
         </Route>
 
       </Routes>

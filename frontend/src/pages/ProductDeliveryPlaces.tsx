@@ -202,7 +202,6 @@ function ProductDelivery() {
         <div className="product-delivery-page">
             <div className="delivery-page-heading">
                 <div>
-                    <span className="delivery-eyebrow">ADMINISTRATION</span>
                     <h1>Product Delivery</h1>
                     <p>Manage delivery coverage, localities, PIN codes and delivery charges.</p>
                 </div>

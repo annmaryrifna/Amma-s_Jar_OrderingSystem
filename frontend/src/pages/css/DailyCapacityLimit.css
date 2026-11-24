@@ -1,0 +1,148 @@
+.capacity-page {
+    padding: 28px;
+    color: #34312D;
+    width: 100%;
+    
+}
+
+.capacity-page-header h2 {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 30px;
+    color: #344E41;
+    margin: 0 0 5px;
+}
+.moveway{
+    font-family: "Moveway", sans-serif;
+    font-size: 14px;
+    color: #777;
+    margin-right:70%;
+}
+
+.capacity-card {
+    max-width: 650px;
+    background: #ffffff;
+    border: 1px solid #e8e1d7;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+    margin-top:30px
+}
+
+.capacity-card-heading h3 {
+    color: #344E41;
+    font-size: 18px;
+    margin-bottom: 7px;
+}
+
+.capacity-card-heading p {
+    color: #888;
+    font-size: 13px;
+}
+
+.capacity-current {
+    background: #f8f5ef;
+    border: 1px solid #e8e1d7;
+    border-radius: 10px;
+    padding: 22px;
+    margin: 24px 0;
+    text-align: center;
+}
+
+.capacity-current span {
+    color: #777;
+    font-size: 13px;
+}
+
+.capacity-current h1 {
+    color: #344E41;
+    font-size: 42px;
+    margin: 10px 0 4px;
+}
+
+.capacity-current p {
+    color: #888;
+    font-size: 12px;
+    margin: 0;
+}
+
+.capacity-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.capacity-form label {
+    color: #34312D;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.capacity-form input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid #d8d1c7;
+    border-radius: 7px;
+    font-size: 14px;
+    outline: none;
+}
+
+.capacity-form input:focus {
+    border-color: #344E41;
+}
+
+.capacity-form button {
+    background: #344E41;
+    color: #ffffff;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.capacity-form button:hover {
+    background: #263b30;
+}
+
+.capacity-form button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.capacity-message {
+    margin-top: 15px;
+    color: #344E41;
+    font-size: 13px;
+}
+
+.capacity-note {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid #e8e1d7;
+}
+
+.capacity-note h4 {
+    color: #344E41;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.capacity-note ul {
+    padding-left: 20px;
+    color: #777;
+    font-size: 12px;
+    line-height: 1.9;
+}
+
+@media (max-width: 600px) {
+    .capacity-page {
+        padding: 15px;
+    }
+
+    .capacity-card {
+        padding: 18px;
+    }
+}

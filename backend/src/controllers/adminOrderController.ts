@@ -538,3 +538,89 @@ export const updateOrderStatus = async (
         });
     }
 };
+
+
+export const getDailyCapacityLimit = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const [settings] = await pool.query<RowDataPacket[]>(
+            `SELECT setting_id, daily_booking_limit, updated_at
+             FROM capacity_settings
+             ORDER BY setting_id DESC
+             LIMIT 1`
+        );
+
+        if (settings.length === 0) {
+            return res.status(404).json({
+                message: "Daily booking limit setting not found."
+            });
+        }
+
+        return res.status(200).json({
+            message: "Daily booking limit retrieved successfully.",
+            settings: settings[0]
+        });
+
+    } catch (error) {
+        console.error("Get daily capacity error:", error);
+
+        return res.status(500).json({
+            message: "Unable to retrieve daily booking limit."
+        });
+    }
+};
+
+
+export const updateDailyCapacityLimit = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const dailyBookingLimit = Number(req.body?.daily_booking_limit);
+
+        if (
+            !Number.isInteger(dailyBookingLimit) ||
+            dailyBookingLimit < 1 ||
+            dailyBookingLimit > 100
+        ) {
+            return res.status(400).json({
+                message: "Daily booking limit must be a whole number between 1 and 100."
+            });
+        }
+
+        const [settings] = await pool.query<RowDataPacket[]>(
+            `SELECT setting_id
+             FROM capacity_settings
+             ORDER BY setting_id DESC
+             LIMIT 1`
+        );
+
+        if (settings.length === 0) {
+            return res.status(404).json({
+                message: "Daily booking limit setting not found."
+            });
+        }
+
+        await pool.execute(
+            `UPDATE capacity_settings
+             SET daily_booking_limit = ?,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE setting_id = ?`,
+            [dailyBookingLimit, settings[0].setting_id]
+        );
+
+        return res.status(200).json({
+            message: "Daily booking limit updated successfully.",
+            daily_booking_limit: dailyBookingLimit
+        });
+
+    } catch (error) {
+        console.error("Update daily capacity error:", error);
+
+        return res.status(500).json({
+            message: "Unable to update daily booking limit."
+        });
+    }
+};

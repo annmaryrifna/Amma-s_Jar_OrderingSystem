@@ -5,7 +5,9 @@ import {
     getAllOrders,
     approveOrder,
     rejectOrder,
-    updateOrderStatus
+    updateOrderStatus,
+    getDailyCapacityLimit,
+    updateDailyCapacityLimit
 } from "../controllers/adminOrderController.js";
 
 import { verifyToken } from "../middleware/authMiddleware.js";
@@ -41,4 +43,20 @@ router.put(
     verifyAdmin,
     updateOrderStatus
 );
+// Admin: View daily booking limit
+router.get(
+    "/capacity",
+    verifyToken,
+    verifyAdmin,
+    getDailyCapacityLimit
+);
+
+// Admin: Update daily booking limit
+router.put(
+    "/capacity",
+    verifyToken,
+    verifyAdmin,
+    updateDailyCapacityLimit
+);
+
 export default router;
