@@ -45,9 +45,10 @@ export const submitPayment = async (req: Request, res: Response) => {
         // Check booking belongs to logged-in customer
         const [orders] = await pool.execute<RowDataPacket[]>(
             `SELECT order_id, user_id, order_status,
-                    payment_status, advance_amount, balance_amount
-             FROM orders
-             WHERE order_id = ? AND user_id = ?`,
+        payment_status, advance_amount, balance_amount,
+        delivery_method
+ FROM orders
+ WHERE order_id = ? AND user_id = ?`,
             [parsedOrderId, user.id]
         );
 
@@ -71,9 +72,14 @@ export const submitPayment = async (req: Request, res: Response) => {
 
             amount = Number(order.advance_amount);
         } else {
-            if (order.order_status !== "Confirmed") {
+            const requiredStatus =
+                order.delivery_method === "delivery"
+                    ? "Out for Delivery"
+                    : "Ready for Pickup";
+
+            if (order.order_status !== requiredStatus) {
                 return res.status(400).json({
-                    message: "Balance payment is available only for confirmed bookings."
+                    message: `Balance payment is available when your order is ${requiredStatus}.`
                 });
             }
 
@@ -139,7 +145,86 @@ export const submitPayment = async (req: Request, res: Response) => {
         });
     }
 };
+export const updateBalancePaymentPreference = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const user = (req as any).user;
+        const { orderId, preference } = req.body;
 
+        const parsedOrderId = Number(orderId);
+
+        if (!Number.isInteger(parsedOrderId) || parsedOrderId <= 0) {
+            return res.status(400).json({
+                message: "Invalid booking ID."
+            });
+        }
+
+        if (!["upi", "cash"].includes(preference)) {
+            return res.status(400).json({
+                message: "Invalid balance payment preference."
+            });
+        }
+
+        const [orders] = await pool.execute<RowDataPacket[]>(
+            `SELECT order_id, order_status, payment_status, delivery_method
+             FROM orders
+             WHERE order_id = ? AND user_id = ?`,
+            [parsedOrderId, user.id]
+        );
+
+        if (orders.length === 0) {
+            return res.status(404).json({
+                message: "Booking not found."
+            });
+        }
+
+        const order = orders[0];
+
+        const requiredStatus =
+            order.delivery_method === "delivery"
+                ? "Out for Delivery"
+                : "Ready for Pickup";
+
+        if (order.order_status !== requiredStatus) {
+            return res.status(400).json({
+                message: `You can choose your balance payment preference when your order is ${requiredStatus}.`
+            });
+        }
+
+        if (order.payment_status === "Fully Paid") {
+            return res.status(400).json({
+                message: "The balance payment has already been completed."
+            });
+        }
+
+        if (order.delivery_method === "delivery" && preference === "cash") {
+            return res.status(400).json({
+                message: "Cash payment is available only for self-pickup orders."
+            });
+        }
+
+        await pool.execute(
+            `UPDATE orders
+             SET balance_payment_preference = ?
+             WHERE order_id = ? AND user_id = ?`,
+            [preference, parsedOrderId, user.id]
+        );
+
+        return res.status(200).json({
+            message: "Balance payment preference saved successfully.",
+            preference
+        });
+
+    } catch (error) {
+        console.error("Update balance payment preference error:", error);
+
+        return res.status(500).json({
+            message: "Unable to save balance payment preference."
+        });
+    }
+};
 export const getMyPaymentSubmissions = async (
     req: Request,
     res: Response

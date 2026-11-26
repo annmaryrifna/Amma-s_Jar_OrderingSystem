@@ -164,7 +164,7 @@
     color: white;
 }
 
-.progress-step.current .progress-indicator {
+.progress-step.current:not(.completed) .progress-indicator {
     background: #A65D3F;
     border-color: #A65D3F;
     color: white;

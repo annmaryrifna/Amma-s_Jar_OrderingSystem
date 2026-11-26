@@ -2,7 +2,7 @@
 import { Request, Response } from "express";
 import pool from "../config/db.js";
 import { RowDataPacket } from "mysql2";
-
+import bcrypt from "bcrypt";
 // GET CUSTOMER PROFILE
 export const getCustomerProfile = async (
     req: Request,
@@ -119,6 +119,77 @@ export const updateCustomerProfile = async (
 
         return res.status(500).json({
             message: "Unable to update customer profile."
+        });
+    }
+};
+
+export const changeCustomerPassword = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const customerId = (req as any).user.id;
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                message: "All password fields are required."
+            });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                message: "New password must contain at least 8 characters."
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                message: "New password and confirmation do not match."
+            });
+        }
+
+        const [users] = await pool.query<RowDataPacket[]>(
+            `SELECT password FROM users
+             WHERE id = ? AND role = 'customer' AND is_active = 1`,
+            [customerId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({
+                message: "Customer account not found."
+            });
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+            currentPassword,
+            users[0].password
+        );
+
+        if (!isPasswordValid) {
+            return res.status(400).json({
+                message: "Current password is incorrect."
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await pool.execute(
+            `UPDATE users
+             SET password = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND role = 'customer'`,
+            [hashedPassword, customerId]
+        );
+
+        return res.status(200).json({
+            message: "Password changed successfully."
+        });
+
+    } catch (error) {
+        console.error("Change customer password error:", error);
+
+        return res.status(500).json({
+            message: "Unable to change password."
         });
     }
 };

@@ -2,15 +2,10 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 
-interface AdminProfile {
-    id: number;
-    name: string;
-    email: string;
-    phone: string | null;
-}
+
 
 function AdminAccountSection() {
-    const [profile, setProfile] = useState<AdminProfile | null>(null);
+
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -32,7 +27,7 @@ function AdminAccountSection() {
 
             const admin = response.data.profile;
 
-            setProfile(admin);
+          
             setName(admin.name);
             setEmail(admin.email);
             setPhone(admin.phone || "");
@@ -63,7 +58,7 @@ function AdminAccountSection() {
                 phone
             });
 
-            setProfile(response.data.profile);
+          
             setMessage(response.data.message);
         } catch (error: any) {
             setMessage(

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../services/api";
 import "./css/Shop.css";
+import CustomerSettingsMenu from "./CustomerSettingsMenu";
 import { useCart, type CartItem } from "../context/CartContext";
 
 interface Category {
@@ -201,14 +202,10 @@ function Shop() {
                 </Link>
 
                 <nav className="shop-nav">
-                    <Link to="/customer/dashboard">My Dashboard</Link>
+                    <Link to="/customer/dashboard"> Home</Link>
                     <Link to="/customer/orders">My Orders</Link>
-                    <Link to="/customer/profile">My Profile</Link>
-
-                    <Link to="/cart" className="shop-cart-link">
-                        My Cart
-                        <span className="cart-count">{cartCount}</span>
-                    </Link>
+                    <Link to="/cart"> My Cart<span className="cart-count">{cartCount}</span></Link>
+                    <CustomerSettingsMenu />
                 </nav>
             </header>
 

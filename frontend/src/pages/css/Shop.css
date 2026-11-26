@@ -23,18 +23,20 @@
 
 .shop-nav {
     display: flex;
-    flex-wrap: wrap;
-    gap: 25px;
+        align-items: center;
+        gap: 28px;
 }
 
 .shop-nav a {
     color: #34312D;
     font-size: 14px;
+    font-weight: 500;
 }
 
 .shop-nav a:hover {
     color: #A65D3F;
 }
+
 
 .shop-banner {
     padding: 65px 20px;

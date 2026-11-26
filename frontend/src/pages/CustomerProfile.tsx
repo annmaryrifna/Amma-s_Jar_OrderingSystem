@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../services/api";
 import "./css/CustomerProfile.css";
+import CustomerSettingsMenu from "./CustomerSettingsMenu";
 
 interface CustomerProfileData {
     id: number;
@@ -12,6 +13,7 @@ interface CustomerProfileData {
 }
 
 function CustomerProfile() {
+
     const [profile, setProfile] = useState<CustomerProfileData | null>(null);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -19,7 +21,7 @@ function CustomerProfile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editing, setEditing] = useState(false);
-
+    console.log("Editing state:", editing);
     useEffect(() => {
         fetchProfile();
     }, []);
@@ -92,9 +94,12 @@ function CustomerProfile() {
                 <Link to="/customer/dashboard" className="profile-brand">
                     Amma's Secrete Jar
                 </Link>
-                <Link to="/customer/dashboard" className="profile-back-link">
-                    Back to Dashboard
-                </Link>
+                <nav className="customer-nav">
+                    <Link to="/customer/dashboard">Home</Link>
+                    <Link to="/shop">Shop</Link>
+                    <Link to="/customer/orders">My Orders</Link>
+                    <CustomerSettingsMenu />
+                </nav>
             </header>
 
             <main className="profile-content">
@@ -112,7 +117,7 @@ function CustomerProfile() {
                                 type="text"
                                 value={name}
                                 onChange={(event) => setName(event.target.value)}
-                                disabled={!editing}
+                                disabled={false}
                                 required
                                 maxLength={100}
                             />
@@ -144,7 +149,20 @@ function CustomerProfile() {
                         </div>
 
                         <div className="profile-actions">
-                            {editing ? (
+                            {!editing && (
+                                <button
+                                    type="button"
+                                    className="profile-edit-button"
+                                    onClick={() => {
+                                        setEditing(true);
+                                        console.log("Edit button clicked");
+                                    }}
+                                >
+                                    Edit Profile
+                                </button>
+                            )}
+
+                            {editing && (
                                 <>
                                     <button
                                         type="submit"
@@ -167,15 +185,7 @@ function CustomerProfile() {
                                     >
                                         Cancel
                                     </button>
-                                </>
-                            ) : (
-                                <button
-                                    type="button"
-                                    className="profile-edit-button"
-                                    onClick={() => setEditing(true)}
-                                >
-                                    Edit Profile
-                                </button>
+                                    </>
                             )}
                         </div>
                     </form>

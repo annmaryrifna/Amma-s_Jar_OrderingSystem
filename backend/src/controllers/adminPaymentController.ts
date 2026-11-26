@@ -27,7 +27,9 @@ export const getAllPaymentSubmissions = async (
                 o.customer_email,
                 o.customer_phone,
                 o.order_status,
-                o.payment_status
+                o.payment_status,
+                o.delivery_method,
+                o.balance_payment_method
              FROM payment_submissions ps
              INNER JOIN orders o
                 ON ps.order_id = o.order_id
@@ -126,16 +128,20 @@ export const verifyPayment = async (
             expectedAmount = Number(order.advance_amount);
 
         } else if (payment.payment_type === "balance") {
-            if (order.order_status !== "Confirmed") {
+            const requiredStatus =
+                order.delivery_method === "delivery"
+                    ? "Out for Delivery"
+                    : "Ready for Pickup";
+
+            if (order.order_status !== requiredStatus) {
                 await connection.rollback();
 
                 return res.status(400).json({
-                    message: "This booking is not eligible for balance payment verification."
+                    message: `Balance payment can only be verified when the order is ${requiredStatus}.`
                 });
             }
 
             expectedAmount = Number(order.balance_amount);
-
         } else {
             await connection.rollback();
 
@@ -173,15 +179,36 @@ export const verifyPayment = async (
                 [payment.order_id]
             );
         } else {
+            // Verify that the customer selected UPI
+            if (
+                order.delivery_method === "pickup" &&
+                order.balance_payment_preference !== "upi"
+            ) {
+                await connection.rollback();
+
+                return res.status(400).json({
+                    message: "The customer has not selected UPI for balance payment."
+                });
+            }
+
+            // Prevent verification if cash has already been recorded
+            if (order.payment_status === "Fully Paid") {
+                await connection.rollback();
+
+                return res.status(400).json({
+                    message: "This booking is already fully paid."
+                });
+            }
+
             await connection.execute<ResultSetHeader>(
                 `UPDATE orders
-                 SET payment_status = 'Fully Paid',
-                     updated_at = CURRENT_TIMESTAMP
-                 WHERE order_id = ?`,
+         SET payment_status = 'Fully Paid',
+             balance_payment_method = 'upi',
+             updated_at = CURRENT_TIMESTAMP
+         WHERE order_id = ?`,
                 [payment.order_id]
             );
         }
-
         await connection.commit();
 
         return res.status(200).json({
@@ -200,6 +227,127 @@ export const verifyPayment = async (
 
         return res.status(500).json({
             message: "Failed to verify payment."
+        });
+
+    } finally {
+        connection.release();
+    }
+};
+
+export const recordCashBalancePayment = async (
+    req: Request,
+    res: Response
+) => {
+    const connection = await pool.getConnection();
+
+    try {
+        const orderId = Number(req.params.orderId);
+
+        if (!Number.isInteger(orderId) || orderId <= 0) {
+            return res.status(400).json({
+                message: "Invalid booking ID."
+            });
+        }
+
+        await connection.beginTransaction();
+
+        const [orders] = await connection.execute<RowDataPacket[]>(
+            `SELECT order_id, delivery_method, order_status,
+        payment_status, balance_amount,
+        balance_payment_preference
+ FROM orders
+ WHERE order_id = ?
+ FOR UPDATE`,
+            [orderId]
+        );
+
+        if (orders.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({
+                message: "Booking not found."
+            });
+        }
+
+        const order = orders[0];
+
+        if (order.delivery_method !== "pickup") {
+            await connection.rollback();
+            return res.status(400).json({
+                message: "Cash balance collection is available only for self pickup."
+            });
+        }
+        if (order.balance_payment_preference !== "cash") {
+            await connection.rollback();
+            return res.status(400).json({
+                message: "The customer has not selected Cash on Collection."
+            });
+        }
+
+        if (order.order_status !== "Ready for Pickup") {
+            await connection.rollback();
+            return res.status(400).json({
+                message: "Cash can only be recorded when the order is ready for pickup."
+            });
+        }
+
+        if (order.payment_status === "Fully Paid") {
+            await connection.rollback();
+            return res.status(400).json({
+                message: "This booking is already fully paid."
+            });
+        }
+        const [pendingBalancePayments] =
+            await connection.execute<RowDataPacket[]>(
+                `SELECT payment_id
+         FROM payment_submissions
+         WHERE order_id = ?
+         AND payment_type = 'balance'
+         AND verification_status = 'Pending'
+         LIMIT 1`,
+                [orderId]
+            );
+
+        if (pendingBalancePayments.length > 0) {
+            await connection.rollback();
+            return res.status(409).json({
+                message: "A balance payment is awaiting online verification. Please verify or reject it before recording cash."
+            });
+        }
+        const balanceAmount = Number(order.balance_amount);
+
+        if (!Number.isFinite(balanceAmount) || balanceAmount <= 0) {
+            await connection.rollback();
+            return res.status(400).json({
+                message: "No balance payment is due."
+            });
+        }
+
+        await connection.execute<ResultSetHeader>(
+            `UPDATE orders
+             SET payment_status = 'Fully Paid',
+                 balance_payment_method = 'cash',
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE order_id = ?`,
+            [orderId]
+        );
+
+        await connection.commit();
+
+        return res.status(200).json({
+            message: "Cash balance payment recorded successfully.",
+            orderId,
+            amount: balanceAmount,
+            paymentStatus: "Fully Paid",
+            paymentMethod: "cash"
+        });
+
+    } catch (error) {
+        await connection.rollback();
+
+        console.error("Record cash balance payment error:", error);
+
+        return res.status(500).json({
+            message: "Failed to record cash balance payment."
         });
 
     } finally {

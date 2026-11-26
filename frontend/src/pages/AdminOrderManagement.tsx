@@ -41,7 +41,8 @@ interface Order {
     order_status: string;
     rejection_reason?: string;
     payment_status: string;
-
+    balance_payment_preference: "upi" | "cash" | null;
+    balance_payment_method: "upi" | "cash" | null;
     items?: OrderItem[];
     order_items?: OrderItem[];
 }
@@ -83,6 +84,7 @@ const AdminOrderManagement = () => {
     const [rejectingOrder, setRejectingOrder] = useState<Order | null>(null);
     const [rejectionReason, setRejectionReason] = useState("");
     const [rejecting, setRejecting] = useState(false);
+    const [recordingCash, setRecordingCash] = useState(false);
 
     useEffect(() => {
         fetchOrders();
@@ -249,8 +251,9 @@ const AdminOrderManagement = () => {
         }
 
         if (
-            order.order_status === "Out for Delivery" ||
-            order.order_status === "Ready for Pickup"
+            (order.order_status === "Out for Delivery" ||
+                order.order_status === "Ready for Pickup") &&
+            order.payment_status === "Fully Paid"
         ) {
             return {
                 label: "Mark Completed",
@@ -329,6 +332,35 @@ const AdminOrderManagement = () => {
             );
         }
     };
+    const handleRecordCashPayment = async (order: Order) => {
+        const confirmed = window.confirm(
+            `Have you received ₹${Number(order.balance_amount).toFixed(2)} in cash from ${order.customer_name} for Booking #${order.order_id}?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setRecordingCash(true);
+
+            const response = await API.put(
+                `/admin/payments/orders/${order.order_id}/cash-payment`
+            );
+
+            alert(response.data.message);
+
+            await fetchOrders();
+
+        } catch (error: any) {
+            alert(
+                error.response?.data?.message ||
+                "Unable to record cash payment."
+            );
+        } finally {
+            setRecordingCash(false);
+        }
+    };
+   
+
     return (
         <div className="admin-payments">
 
@@ -437,6 +469,7 @@ const AdminOrderManagement = () => {
                             <th>Customer</th>
                             <th>Booking Date</th>
                             <th>Time</th>
+                            <th>Delivery Method</th>
                             <th>Total Amount</th>
                             <th>Order Status</th>
                             <th>Payment Status</th>
@@ -473,7 +506,13 @@ const AdminOrderManagement = () => {
                                     <td>
                                         {formatBookingTime(order.booking_time)}
                                     </td>
-
+                                    <td>
+                                        <span className={`delivery-badge ${order.delivery_method}`}>
+                                            {order.delivery_method === "delivery"
+                                                ? "Home Delivery"
+                                                : "Self Pickup"}
+                                        </span>
+                                    </td>
                                     <td>
                                         {formatAmount(order.total_amount)}
                                     </td>
@@ -499,7 +538,20 @@ const AdminOrderManagement = () => {
                                             >
                                                 View
                                             </button>
-
+                                            {order.delivery_method === "pickup" &&
+                                                order.order_status === "Ready for Pickup" &&
+                                                order.payment_status !== "Fully Paid" &&
+                                                order.balance_payment_preference === "cash" && (
+                                                    <button
+                                                        className="approve-button"
+                                                        onClick={() => handleRecordCashPayment(order)}
+                                                        disabled={recordingCash}
+                                                    >
+                                                        {recordingCash
+                                                            ? "Recording..."
+                                                            : "Mark Cash Received"}
+                                                    </button>
+                                                )}
                                             {order.order_status === "Pending Admin Approval" && (
                                                 <>
                                                     <button
@@ -721,6 +773,17 @@ const AdminOrderManagement = () => {
                                 {selectedOrder.payment_status}
                             </p>
                         </div>
+                        {selectedOrder.payment_status === "Fully Paid" && (
+                            <p>
+                                <strong>Balance Payment Method:</strong>{" "}
+                                {selectedOrder.balance_payment_method === "upi"
+                                    ? "Online UPI"
+                                    : selectedOrder.balance_payment_method === "cash"
+                                        ? "Cash on Collection"
+                                        : "Not Available"}
+                            </p>
+                        )}
+                       
                         {selectedOrder.order_status === "Rejected" &&
                             selectedOrder.rejection_reason && (
                                 <div className="modal-section">

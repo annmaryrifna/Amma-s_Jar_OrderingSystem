@@ -1,7 +1,7 @@
 
 import { Link } from "react-router-dom";
 import "./css/CustomerDashboard.css";
-
+import CustomerSettingsMenu from "./CustomerSettingsMenu";
 function CustomerDashboard() {
     return (
         <div className="customer-dashboard">
@@ -12,21 +12,9 @@ function CustomerDashboard() {
                 </Link>
 
                 <nav className="customer-nav">
-                    
                     <Link to="/shop">Shop</Link>
                     <Link to="/customer/orders">My Orders</Link>
-                    <Link to="/customer/profile">My Profile</Link>
-                    <button
-                        className="logout-button"
-                        onClick={() => {
-                            sessionStorage.removeItem("token");
-                            sessionStorage.removeItem("user");
-                            sessionStorage.removeItem("cart");
-                            window.location.href = "/login";
-                        }}
-                    >
-                        Logout
-                    </button>
+                    <CustomerSettingsMenu />
                 </nav>
             </header>
 

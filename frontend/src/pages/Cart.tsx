@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./css/Cart.css";
-
+import CustomerSettingsMenu from "./CustomerSettingsMenu";
 function Cart() {
     const {
         cartItems,
@@ -24,9 +24,10 @@ function Cart() {
                 </Link>
 
                 <nav>
-                    <Link to="/">Home</Link>
+                    <Link to="/customer/dashboard">Home</Link>
                     <Link to="/shop">Shop</Link>
-                    <Link to="/customer/dashboard">My Dashboard</Link>
+                    <Link to="/customer/orders">My Orders</Link>
+                    <CustomerSettingsMenu />
                 </nav>
             </header>
 

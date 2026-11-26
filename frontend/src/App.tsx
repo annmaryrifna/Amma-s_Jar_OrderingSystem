@@ -15,6 +15,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import MyOrders from "./pages/MyOrders";
 import CustomerProfile from "./pages/CustomerProfile";
+import CustomerChangePassword from "./pages/CustomerChangePassword";
 import ProductDelivery from "./pages/ProductDeliveryPlaces";
 import AdminPaymentManagement from "./pages/AdminPaymentManagement";
 import RegisteredCustomers from "./pages/RegisteredCustomers";
@@ -40,6 +41,7 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/customer/orders" element={<MyOrders />} />
           <Route path="/customer/profile" element={<CustomerProfile />} />
+          <Route path="/customer/change-password" element={<CustomerChangePassword />}/>
 
         {/* Admin Pages */}
         <Route path="/admin" element={<AdminLayout />}>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../services/api";
 import "./css/MyOrders.css";
+import CustomerSettingsMenu from "./CustomerSettingsMenu";
 
 // Seller payment details
 const UPI_ID = "shanygrace1969@okicici";
@@ -30,6 +31,7 @@ interface Order {
     balance_amount: number;
     order_status: string;
     payment_status: string;
+    balance_payment_preference: "upi" | "cash" | null;
     rejection_reason: string | null;
     items: OrderItem[];
 }
@@ -58,7 +60,8 @@ const MyOrders = () => {
 
     const [paymentMethods, setPaymentMethods] =
         useState<Record<number, PaymentMethod>>({});
-
+    const [balancePreferences, setBalancePreferences] =
+        useState<Record<number, "upi" | "cash">>({});
     const [transactionReferences, setTransactionReferences] =
         useState<Record<number, string>>({});
 
@@ -180,7 +183,33 @@ const MyOrders = () => {
             [orderId]: method,
         }));
     };
+    const handleBalancePreferenceChange = async (
+        order: Order,
+        preference: "upi" | "cash"
+    ) => {
+        try {
+            const response = await API.put("/payments/balance-preference", {
+                orderId: order.order_id,
+                preference
+            });
 
+            setBalancePreferences(previous => ({
+                ...previous,
+                [order.order_id]: preference
+            }));
+
+            alert(
+                response.data.message ||
+                "Payment preference saved successfully."
+            );
+
+        } catch (err: any) {
+            alert(
+                err.response?.data?.message ||
+                "Unable to save payment preference."
+            );
+        }
+    };
     // Update transaction reference
     const handleReferenceChange = (
         orderId: number,
@@ -193,7 +222,10 @@ const MyOrders = () => {
     };
 
     // Submit advance payment details
-    const handlePaymentSubmit = async (order: Order) => {
+    const handlePaymentSubmit = async (
+        order: Order,
+        paymentType: "advance" | "balance" = "advance"
+    ) => {
         const method =
             paymentMethods[order.order_id] || "upi_id";
 
@@ -233,7 +265,7 @@ const MyOrders = () => {
 
             const response = await API.post("/payments", {
                 orderId: order.order_id,
-                paymentType: "advance",
+                paymentType,
                 paymentMethod: method,
                 transactionReference: reference,
             });
@@ -314,11 +346,10 @@ const MyOrders = () => {
                 </Link>
 
                 <nav>
+                    <Link to="/customer/dashboard">Home  </Link>
                     <Link to="/shop">Shop</Link>
                     <Link to="/cart">Cart</Link>
-                    <Link to="/customer/dashboard">
-                        Dashboard
-                    </Link>
+                    <CustomerSettingsMenu />
                 </nav>
             </header>
 
@@ -353,13 +384,32 @@ const MyOrders = () => {
                             const isApproved =
                                 order.order_status ===
                                 "Approved – Awaiting Payment";
+                            const balancePaymentStage =
+                                order.delivery_method === "delivery"
+                                    ? order.order_status === "Out for Delivery"
+                                    : order.order_status === "Ready for Pickup";
 
+                            const selectedBalancePreference =
+                                balancePreferences[order.order_id] ||
+                                order.balance_payment_preference ||
+                                "";
                             // Get latest advance payment submission
                             const advancePayment = payments
                                 .filter(
                                     payment =>
                                         payment.order_id === order.order_id &&
                                         payment.payment_type === "advance"
+                                )
+                                .sort(
+                                    (a, b) =>
+                                        new Date(b.submitted_at).getTime() -
+                                        new Date(a.submitted_at).getTime()
+                                )[0];
+                            const balancePayment = payments
+                                .filter(
+                                    payment =>
+                                        payment.order_id === order.order_id &&
+                                        payment.payment_type === "balance"
                                 )
                                 .sort(
                                     (a, b) =>
@@ -400,8 +450,12 @@ const MyOrders = () => {
                                                 return (
                                                     <div className="progress-timeline">
                                                         {progress.steps.map((step, index) => {
+
                                                             const isCompleted =
-                                                                index < progress.currentStep;
+                                                                index < progress.currentStep ||
+                                                                (order.order_status === "Completed" &&
+                                                                    index === progress.currentStep);
+
 
                                                             const isCurrent =
                                                                 index === progress.currentStep;
@@ -825,7 +879,202 @@ const MyOrders = () => {
                                                 )}
                                         </div>
                                     )}
+                                    {/* Balance Payment Section */}
+                                    {balancePaymentStage &&
+                                        order.payment_status !== "Fully Paid" && (
+                                            <div className="customer-payment-section">
+                                                <h3>Pay Your Remaining Balance</h3>
+                                            {/* Balance Payment Status */}
+                                            {balancePayment?.verification_status === "Pending" && (
+                                                <div className="payment-submitted-message">
+                                                    <h4>Balance Payment Submitted</h4>
+                                                    <p>Your payment is awaiting verification by the seller.</p>
+                                                    <p>
+                                                        Transaction Reference:{" "}
+                                                        <strong>{balancePayment.transaction_reference}</strong>
+                                                    </p>
+                                                </div>
+                                            )}
 
+                                            {balancePayment?.verification_status === "Verified" && (
+                                                <div className="payment-submitted-message">
+                                                    <h4>Balance Payment Verified!</h4>
+                                                    <p>Your remaining balance has been successfully verified.</p>
+                                                </div>
+                                            )}
+
+                                            {balancePayment?.verification_status === "Rejected" && (
+                                                <div className="booking-rejected-message">
+                                                    <h4>Balance Payment Rejected</h4>
+                                                    <p>
+                                                        <strong>Reason:</strong>{" "}
+                                                        {balancePayment.admin_note ||
+                                                            "Please check your payment details and try again."}
+                                                    </p>
+                                                    <p>
+                                                        Previous transaction reference:{" "}
+                                                        {balancePayment.transaction_reference}
+                                                    </p>
+                                                    <p>You can submit your payment details again.</p>
+                                                </div>
+                                            )}
+                                            {(!balancePayment ||
+                                                balancePayment.verification_status === "Rejected") && (
+                                                    <p>
+                                                        Remaining amount:{" "}
+                                                        <strong>
+                                                            ₹{Number(order.balance_amount).toFixed(2)}
+                                                        </strong>
+                                                    </p>
+                                                )}
+                                                
+                                            {(!balancePayment ||
+                                                balancePayment.verification_status === "Rejected") && (
+                                                    <>
+                                                        {order.delivery_method === "delivery" ? (
+                                                            <p>
+                                                                Please complete your balance payment online
+                                                                using UPI.
+                                                            </p>
+                                                        ) : (
+                                                            <>
+                                                                <p>Choose how you would like to pay:</p>
+
+                                                                <div className="payment-method-options">
+                                                                    <label>
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={`balance-${order.order_id}`}
+                                                                            checked={selectedBalancePreference === "upi"}
+                                                                            onChange={() =>
+                                                                                handleBalancePreferenceChange(order, "upi")
+                                                                            }
+                                                                        />
+                                                                        Pay Online (UPI)
+                                                                    </label>
+
+                                                                    <label>
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={`balance-${order.order_id}`}
+                                                                            checked={selectedBalancePreference === "cash"}
+                                                                            onChange={() =>
+                                                                                handleBalancePreferenceChange(order, "cash")
+                                                                            }
+                                                                        />
+                                                                        Cash on Collection
+                                                                    </label>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    {balancePaymentStage &&
+                                        order.payment_status !== "Fully Paid" &&
+                                        (order.delivery_method === "delivery" ||
+                                            selectedBalancePreference === "upi") &&
+                                        (!balancePayment ||
+                                            balancePayment.verification_status === "Rejected") && (
+                                            <>
+                                                <div className="payment-method-options">
+                                                    <label>
+                                                        <input
+                                                            type="radio"
+                                                            name={`balance-payment-${order.order_id}`}
+                                                            checked={paymentMethods[order.order_id] === "upi_id" ||
+                                                                !paymentMethods[order.order_id]}
+                                                            onChange={() =>
+                                                                handlePaymentMethodChange(order.order_id, "upi_id")
+                                                            }
+                                                        />
+                                                        Pay using UPI ID
+                                                    </label>
+
+                                                    <label>
+                                                        <input
+                                                            type="radio"
+                                                            name={`balance-payment-${order.order_id}`}
+                                                            checked={paymentMethods[order.order_id] === "upi_qr"}
+                                                            onChange={() =>
+                                                                handlePaymentMethodChange(order.order_id, "upi_qr")
+                                                            }
+                                                        />
+                                                        Pay using QR Code
+                                                    </label>
+                                                </div>
+
+                                                {paymentMethods[order.order_id] === "upi_qr" ? (
+                                                    <div className="payment-instructions">
+                                                        <h4>Scan and Pay</h4>
+                                                        <img
+                                                            src={UPI_QR_IMAGE}
+                                                            alt="UPI QR Code"
+                                                            className="payment-qr-image"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="payment-instructions">
+                                                        <h4>UPI Payment</h4>
+                                                        <div className="upi-id-row">
+                                                            <strong>{UPI_ID}</strong>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    navigator.clipboard.writeText(UPI_ID)
+                                                                }
+                                                            >
+                                                                Copy UPI ID
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="transaction-reference">
+                                                    <label>UTR / Transaction Reference</label>
+                                                    <input
+                                                        type="text"
+                                                        value={transactionReferences[order.order_id] || ""}
+                                                        onChange={e =>
+                                                            handleReferenceChange(order.order_id, e.target.value)
+                                                        }
+                                                        placeholder="Enter your transaction reference"
+                                                        maxLength={150}
+                                                    />
+                                                </div>
+
+                                                <button
+                                                    className="payment-submit-button"
+                                                    type="button"
+                                                    onClick={() => handlePaymentSubmit(order, "balance")}
+                                                    disabled={submittingOrder === order.order_id}
+                                                >
+                                                    {submittingOrder === order.order_id
+                                                        ? "Submitting..."
+                                                        : "Submit Balance Payment"}
+                                                </button>
+                                            </>
+                                        )}
+                                    {balancePaymentStage &&
+                                        order.payment_status !== "Fully Paid" &&
+                                        order.delivery_method === "pickup" &&
+                                        selectedBalancePreference === "cash" &&
+                                        !balancePayment && (
+                                            <div className="payment-submitted-message">
+                                                <h4>Cash on Collection Selected</h4>
+                                                <p>
+                                                    You have chosen to pay your remaining balance of{" "}
+                                                    <strong>
+                                                        ₹{Number(order.balance_amount).toFixed(2)}
+                                                    </strong>{" "}
+                                                    in cash when collecting your order.
+                                                </p>
+                                                <p>
+                                                    Please pay the amount when you collect your order.
+                                                </p>
+                                            </div>
+                                        )}
                                     {/* Confirmed Booking */}
                                     {order.order_status === "Confirmed" && (
                                         <div className="payment-submitted-message">

@@ -46,6 +46,8 @@ export const getAllOrders = async (
                 o.advance_amount,
                 o.balance_amount,
                 o.order_status,
+                o.balance_payment_preference,
+o.balance_payment_method,
                 o.payment_status,
                 o.created_at
              FROM orders o
@@ -484,9 +486,8 @@ export const updateOrderStatus = async (
         }
 
         const [orders] = await pool.query<RowDataPacket[]>(
-            `SELECT order_id, order_status, delivery_method
-             FROM orders
-             WHERE order_id = ?`,
+            `SELECT order_id, order_status, delivery_method, payment_status
+             FROM orders WHERE order_id = ?`,
             [orderId]
         );
 
@@ -497,6 +498,14 @@ export const updateOrderStatus = async (
         }
 
         const order = orders[0];
+        if (
+            orderStatus === "Completed" &&
+            order.payment_status !== "Fully Paid"
+        ) {
+            return res.status(400).json({
+                message: "The remaining balance must be fully paid before completing this booking."
+            });
+        }
 
         // Only confirmed or in-progress bookings F be updated.
         const validTransitions: Record<string, string[]> = {
