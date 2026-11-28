@@ -8,7 +8,6 @@ export const verifyToken = (
 ) => {
     try {
         const authHeader = req.headers.authorization;
-        console.log("Authorization header:", req.headers.authorization);
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).json({
                 message: "Access denied. Token required."
@@ -23,7 +22,6 @@ export const verifyToken = (
         );
 
         (req as any).user = decoded;
-        console.log("Token verified. User:", decoded);
 
         next();
 

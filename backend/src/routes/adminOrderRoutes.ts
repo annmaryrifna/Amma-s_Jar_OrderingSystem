@@ -2,19 +2,22 @@
 import { Router } from "express";
 
 import {
-    getAllOrders,
-    approveOrder,
-    rejectOrder,
-    updateOrderStatus,
-    getDailyCapacityLimit,
-    updateDailyCapacityLimit
+    getAllOrders,approveOrder, rejectOrder,updateOrderStatus,
+    getDailyCapacityLimit,updateDailyCapacityLimit, getDashboardOverview
+
 } from "../controllers/adminOrderController.js";
 
 import { verifyToken } from "../middleware/authMiddleware.js";
 import { verifyAdmin } from "../middleware/adminMiddleware.js";
 
 const router = Router();
-
+// Admin: Dashboard overview statistics
+router.get(
+    "/dashboard",
+    verifyToken,
+    verifyAdmin,
+    getDashboardOverview
+);
 // Admin: View all customer bookings
 router.get(
     "/",

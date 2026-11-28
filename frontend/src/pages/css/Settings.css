@@ -116,6 +116,80 @@
     font-size: 16px;
     margin: 0 0 20px;
 }
+/* Password Success Popup */
+.password-success-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 2000;
+}
+
+.password-success-popup {
+    width: 100%;
+    max-width: 380px;
+    padding: 32px 25px;
+    background: #ffffff;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16);
+    animation: popupAppear 0.25s ease;
+}
+
+.password-success-icon {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #eaf5f0;
+    color: #344e41;
+}
+
+.password-success-popup h3 {
+    margin: 0 0 10px;
+    color: #344e41;
+    font-size: 20px;
+}
+
+.password-success-popup p {
+    margin: 0 0 22px;
+    color: #777777;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.password-success-popup button {
+    min-width: 110px;
+    padding: 11px 25px;
+    border: none;
+    border-radius: 8px;
+    background: #344e41;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.password-success-popup button:hover {
+    background: #263d32;
+}
+
+@keyframes popupAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
 @media (max-width: 600px) {
     .settings-page {
         padding: 15px;

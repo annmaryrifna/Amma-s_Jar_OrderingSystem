@@ -1,0 +1,139 @@
+
+.complaint-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.complaint-modal {
+    background: #F8F5EF;
+    width: 100%;
+    max-width: 550px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 12px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+}
+
+.complaint-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 26px;
+    border-bottom: 1px solid #E5DED2;
+}
+
+.complaint-modal-header h2 {
+    color: #344E41;
+    font-size: 22px;
+    margin: 0 0 6px;
+}
+
+.complaint-modal-header p {
+    color: #777;
+    font-size: 13px;
+    margin: 0;
+}
+
+.complaint-close-button {
+    border: none;
+    background: transparent;
+    color: #555;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.complaint-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 26px;
+}
+
+.complaint-modal-body label {
+    color: #34312D;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 5px;
+}
+
+.complaint-modal-body input,
+.complaint-modal-body select,
+.complaint-modal-body textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid #D8D0C3;
+    border-radius: 6px;
+    background: #fff;
+    color: #34312D;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+}
+
+.complaint-modal-body input:focus,
+.complaint-modal-body select:focus,
+.complaint-modal-body textarea:focus {
+    border-color: #344E41;
+}
+
+.complaint-modal-body textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.submit-complaint-button,
+.complaint-success-message button {
+    background: #344E41;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 13px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+.submit-complaint-button:hover,
+.complaint-success-message button:hover {
+    background: #A65D3F;
+}
+
+.submit-complaint-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.complaint-success-message {
+    text-align: center;
+    padding: 45px 25px;
+}
+
+.complaint-success-message h3 {
+    color: #344E41;
+    margin-bottom: 10px;
+}
+
+.complaint-success-message p {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+    .complaint-modal {
+        max-width: 100%;
+    }
+
+    .complaint-modal-header,
+    .complaint-modal-body {
+        padding: 20px;
+    }
+}

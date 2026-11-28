@@ -324,10 +324,11 @@ export const recordCashBalancePayment = async (
 
         await connection.execute<ResultSetHeader>(
             `UPDATE orders
-             SET payment_status = 'Fully Paid',
-                 balance_payment_method = 'cash',
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE order_id = ?`,
+ SET payment_status = 'Fully Paid',
+     balance_payment_method = 'cash',
+     balance_paid_at = CURRENT_TIMESTAMP,
+     updated_at = CURRENT_TIMESTAMP
+ WHERE order_id = ?`,
             [orderId]
         );
 

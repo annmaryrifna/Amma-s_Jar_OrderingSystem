@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, UserRound, LockKeyhole, LogOut } from "lucide-react";
+import { Settings, UserRound, LockKeyhole, LogOut, MessageSquare } from "lucide-react";
 import "./css/CustomerSettingsMenu.css";
 function CustomerSettingsMenu() {
     const [isOpen, setIsOpen] = useState(false);
@@ -67,7 +67,16 @@ function CustomerSettingsMenu() {
                         <LockKeyhole size={17} />
                         Change Password
                     </button>
-
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsOpen(false);
+                            navigate("/customer/complaints");
+                        }}
+                    >
+                        <MessageSquare size={17} />
+                        My Complaints
+                    </button>
                     <button
                         type="button"
                         className="customer-logout-option"
@@ -76,6 +85,7 @@ function CustomerSettingsMenu() {
                         <LogOut size={17} />
                         Logout
                     </button>
+
                 </div>
             )}
         </div>

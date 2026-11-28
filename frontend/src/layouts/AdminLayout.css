@@ -6,6 +6,11 @@
     font-family: Arial, sans-serif;
 }
 
+.admin-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
 /* Sidebar */
 .admin-sidebar {
     width: 250px;
@@ -154,6 +159,108 @@
     background: #f8eee9;
     color: #a65d3f;
     border-radius: 7px;
+}
+/* Settings Button */
+.admin-settings-wrapper {
+    position: relative;
+}
+
+.admin-settings-button {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #344E41;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.admin-settings-button:hover,
+.admin-settings-button.active {
+    background: #eaf5f0;
+    border-color: #d5e6d9;
+}
+/* Settings Dropdown */
+.admin-settings-dropdown {
+    position: absolute;
+    top: 52px;
+    right: 0;
+    width: 230px;
+    padding: 10px;
+    background: #ffffff;
+    border: 1px solid #eeeeee;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    z-index: 1000;
+}
+
+.dropdown-heading {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px;
+}
+
+.dropdown-profile-icon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eaf5f0;
+    color: #344E41;
+    border-radius: 50%;
+}
+
+.dropdown-heading strong {
+    display: block;
+    color: #333333;
+    font-size: 14px;
+}
+
+.dropdown-heading p {
+    margin: 4px 0 0;
+    color: #999999;
+    font-size: 12px;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: #eeeeee;
+    margin: 7px 0;
+}
+
+.admin-settings-dropdown button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 10px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: #555555;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.admin-settings-dropdown button:hover {
+    background: #eaf5f0;
+    color: #344E41;
+}
+
+.admin-settings-dropdown .dropdown-logout {
+    color: #b34c42;
+}
+
+.admin-settings-dropdown .dropdown-logout:hover {
+    background: #fcefed;
+    color: #a34438;
 }
 /* Responsive */
 @media (max-width: 768px) {

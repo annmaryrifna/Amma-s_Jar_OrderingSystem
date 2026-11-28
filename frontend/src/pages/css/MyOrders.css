@@ -511,6 +511,64 @@
     background: #f8dddd;
     color: #a12e2e;
 }
+/* Completed Booking Card */
+.completed-order-card {
+    padding: 28px;
+    
+}
+
+.completed-order-card .order-card-header {
+    border-bottom: none;
+    margin-bottom: 16px;
+}
+
+.view-booking-details {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid #EEE9E1;
+    color: #344E41;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+}
+
+.view-booking-details:hover {
+    color: #A65D3F;
+}
+
+.completed-order-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.completed-order-actions button {
+    padding: 9px 18px;
+    border: 1px solid #344E41;
+    border-radius: 6px;
+    background: #344E41;
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.completed-order-actions button:hover {
+    background: #A65D3F;
+    border-color: #A65D3F;
+}
+
+.completed-booking-details {
+    border-top: 1px solid #EEE9E1;
+    padding-top: 20px;
+    margin-top: 10px;
+}
 @media (max-width: 768px) {
     .orders-header {
         flex-direction: column;

@@ -11,6 +11,7 @@ interface ValidatedItem {
     price: number;
     price_quantity: number;
     total_price: number;
+
 }
 
 export const createOrder = async (req: Request, res: Response) => {
@@ -578,7 +579,7 @@ export const getCustomerOrders = async (
         const [orders] = await pool.query<RowDataPacket[]>(
             `SELECT
                 o.order_id,
-                o.booking_date,
+                DATE_FORMAT(o.booking_date, '%Y-%m-%d') AS booking_date,
                 o.booking_slot,
                 o.booking_time,
                 o.delivery_method,
@@ -595,7 +596,7 @@ export const getCustomerOrders = async (
                 o.created_at
              FROM orders o
              WHERE o.user_id = ?
-             ORDER BY o.created_at DESC`,
+             ORDER BY o.booking_date DESC`,
             [userId]
         );
 
@@ -603,15 +604,18 @@ export const getCustomerOrders = async (
         for (const order of orders) {
             const [items] = await pool.query<RowDataPacket[]>(
                 `SELECT
-                    product_id,
-                    product_name,
-                    quantity,
-                    unit,
-                    price,
-                    price_quantity,
-                    total_price
-                 FROM order_items
-                 WHERE order_id = ?`,
+    oi.product_id,
+    oi.product_name,
+    oi.quantity,
+    oi.unit,
+    oi.price,
+    oi.price_quantity,
+    oi.total_price,
+    p.image AS product_image
+FROM order_items oi
+LEFT JOIN products p
+    ON oi.product_id = p.product_id
+WHERE oi.order_id = ?`,
                 [order.order_id]
             );
 

@@ -17,7 +17,15 @@ interface Product {
     purchase_options: number[] | string | null;
     is_active: boolean | number;
 }
-
+interface ProductReview {
+    review_id: number;
+    product_id: number;
+    rating: number;
+    review_text: string;
+    created_at: string;
+    customer_name: string;
+    product_name: string;
+}
 interface CartItem {
     product_id: number;
     product_name: string;
@@ -54,7 +62,8 @@ function ProductDetails() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState("");
     const [cartMessage, setCartMessage] = useState("");
-
+    const [reviews, setReviews] = useState<ProductReview[]>([]);
+    const [reviewsLoading, setReviewsLoading] = useState(true);
     useEffect(() => {
         const fetchProduct = async () => {
             try {
@@ -95,7 +104,31 @@ function ProductDetails() {
 
         fetchProduct();
     }, [id]);
+    useEffect(() => {
+        const fetchProductReviews = async () => {
+            try {
+                setReviewsLoading(true);
 
+                const response = await API.get("/reviews/approved");
+
+                const productReviews: ProductReview[] =
+                    response.data.reviews || [];
+
+                setReviews(
+                    productReviews.filter(
+                        (review) => review.product_id === Number(id)
+                    )
+                );
+
+            } catch (error) {
+                console.error("Product reviews loading error:", error);
+            } finally {
+                setReviewsLoading(false);
+            }
+        };
+
+        fetchProductReviews();
+    }, [id]);
     if (loading) {
         return <div className="details-status">Loading product details...</div>;
     }
@@ -259,7 +292,95 @@ function ProductDetails() {
 
                     </div>
                 </div>
+                {/* Customer Reviews */}
+                <section className="product-reviews-section">
+                    <div className="product-reviews-heading">
+                        <span className="details-category">
+                            CUSTOMER FEEDBACK
+                        </span>
+                        <h2>Customer Reviews</h2>
+                    </div>
 
+                    {reviewsLoading ? (
+                        <p>Loading reviews...</p>
+                    ) : reviews.length === 0 ? (
+                        <p className="no-product-reviews">
+                            No reviews available for this product yet.
+                        </p>
+                    ) : (
+                        <>
+                            <div className="product-review-summary">
+                                <strong>
+                                    {(
+                                        reviews.reduce(
+                                            (total, review) => total + review.rating,
+                                            0
+                                        ) / reviews.length
+                                    ).toFixed(1)}
+                                </strong>
+
+                                <div>
+                                    <div className="product-review-stars">
+                                        {Array.from({ length: 5 }, (_, index) => (
+                                            <span key={index}>
+                                                {index <
+                                                    Math.round(
+                                                        reviews.reduce(
+                                                            (total, review) =>
+                                                                total + review.rating,
+                                                            0
+                                                        ) / reviews.length
+                                                    )
+                                                    ? "★"
+                                                    : "☆"}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    <p>Based on {reviews.length} review(s)</p>
+                                </div>
+                            </div>
+
+                            <div className="product-reviews-list">
+                                {reviews.map((review) => (
+                                    <article
+                                        className="product-review-card"
+                                        key={review.review_id}
+                                    >
+                                        <div className="product-review-card-top">
+                                            <strong>{review.customer_name}</strong>
+
+                                            <span>
+                                                {new Date(
+                                                    review.created_at
+                                                ).toLocaleDateString("en-IN", {
+                                                    day: "numeric",
+                                                    month: "short",
+                                                    year: "numeric",
+                                                })}
+                                            </span>
+                                        </div>
+
+                                        <div className="product-review-stars">
+                                            {Array.from(
+                                                { length: 5 },
+                                                (_, index) => (
+                                                    <span key={index}>
+                                                        {index < review.rating
+                                                            ? "★"
+                                                            : "☆"}
+                                                    </span>
+                                                )
+                                            )}
+                                        </div>
+
+                                        <p>{review.review_text}</p>
+                                    </article>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </section>
             </main>
 
             <footer className="details-footer">

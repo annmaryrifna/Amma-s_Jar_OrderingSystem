@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import API from "../services/api";
 import "./css/MyOrders.css";
 import CustomerSettingsMenu from "./CustomerSettingsMenu";
-
+import ProductReviewModal from "./ProductReviewModal";
+import CustomerComplaintModal from "./CustomerComplaintModal";
 // Seller payment details
 const UPI_ID = "shanygrace1969@okicici";
 const UPI_QR_IMAGE = "/payment/UPI_image.jpeg";
@@ -15,6 +16,7 @@ interface OrderItem {
     quantity: number;
     unit: string;
     total_price: number;
+    product_image: string | null;
 }
 
 interface Order {
@@ -50,7 +52,15 @@ interface PaymentSubmission {
     submitted_at: string;
     verified_at: string | null;
 }
-
+interface CustomerReview {
+    review_id: number;
+    order_id: number;
+    product_id: number;
+    rating: number;
+    review_text: string | null;
+    is_approved: boolean;
+    created_at: string;
+}
 const MyOrders = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [payments, setPayments] = useState<PaymentSubmission[]>([]);
@@ -69,17 +79,40 @@ const MyOrders = () => {
         useState<number | null>(null);
     const [cancellingOrder, setCancellingOrder] =
         useState<number | null>(null);
+    const [expandedOrders, setExpandedOrders] =
+        useState<Record<number, boolean>>({});
+    const [selectedReviewOrder, setSelectedReviewOrder] =
+        useState<Order | null>(null);
+    const [customerReviews, setCustomerReviews] =
+        useState<CustomerReview[]>([]);
+    const [selectedComplaintOrder, setSelectedComplaintOrder] =
+        useState<Order | null>(null);
+    const toggleOrderDetails = (orderId: number) => {
+        setExpandedOrders(previous => ({
+            ...previous,
+            [orderId]: !previous[orderId],
+        }));
+    };
 
     // Fetch bookings and payment history
     const fetchOrders = async () => {
         try {
             setError("");
 
-            const [ordersResponse, paymentsResponse] =
+            const [ordersResponse, paymentsResponse, reviewsResponse] =
                 await Promise.all([
                     API.get("/orders/my-orders"),
                     API.get("/payments/my-submissions"),
+                    API.get("/reviews/my-reviews"),
                 ]);
+
+            console.log(
+                "Booking dates from API:",
+                ordersResponse.data.orders.map((order: Order) => ({
+                    id: order.order_id,
+                    booking_date: order.booking_date,
+                }))
+            );
 
             setOrders(ordersResponse.data.orders || []);
 
@@ -88,6 +121,9 @@ const MyOrders = () => {
                 paymentsResponse.data.submissions ||
                 []
             );
+
+            setCustomerReviews(reviewsResponse.data.reviews || []);
+
         } catch (err: any) {
             setError(
                 err.response?.data?.message ||
@@ -97,7 +133,6 @@ const MyOrders = () => {
             setLoading(false);
         }
     };
-
     // Refresh payment history after submission
     const fetchPaymentHistory = async () => {
         try {
@@ -121,14 +156,23 @@ const MyOrders = () => {
     }, []);
 
     // Format date
+
+    // Format date without timezone conversion
     const formatDate = (date: string) => {
-        return new Date(date).toLocaleDateString("en-IN", {
+        const datePart = date.split("T")[0];
+        const [year, month, day] = datePart.split("-");
+
+        return new Date(
+            Number(year),
+            Number(month) - 1,
+            Number(day)
+        ).toLocaleDateString("en-IN", {
             day: "numeric",
             month: "long",
             year: "numeric",
-            timeZone: "UTC",
         });
     };
+
 
     // Format time
     const formatTime = (time: string) => {
@@ -321,7 +365,58 @@ const MyOrders = () => {
             setCancellingOrder(null);
         }
     };
+    const handleSubmitReview = async (
+        orderId: number,
+        productId: number,
+        rating: number,
+        reviewText: string
+    ) => {
+        try {
+            const response = await API.post("/reviews", {
+                orderId,
+                productId,
+                rating,
+                reviewText,
+            });
 
+            alert(
+                response.data.message ||
+                "Your review has been submitted for approval."
+            );
+
+        } catch (err: any) {
+            alert(
+                err.response?.data?.message ||
+                "Unable to submit your review."
+            );
+
+            throw err;
+        }
+    };
+    const handleSubmitComplaint = async (
+        orderId: number,
+        subject: string,
+        category: string,
+        complaintMessage: string
+    ) => {
+        try {
+            const response = await API.post("/complaints", {
+                orderId,
+                subject,
+                category,
+                complaintMessage,
+            });
+
+            return response.data;
+        } catch (err: any) {
+            alert(
+                err.response?.data?.message ||
+                "Unable to submit your complaint."
+            );
+
+            throw err;
+        }
+    };
     if (loading) {
         return (
             <div className="orders-message">
@@ -418,27 +513,154 @@ const MyOrders = () => {
                                 )[0];
 
                             return (
-                                <article
-                                    className="order-card"
-                                    key={order.order_id}
-                                >
-                                    {/* Booking Header */}
-                                    <div className="order-card-header">
-                                        <div>
-                                            <h2>
-                                                Booking #{order.order_id}
-                                            </h2>
+                                order.order_status === "Completed" ? (
+                                    <article
+                                        className="order-card completed-order-card"
+                                        key={order.order_id}
+                                    >
+                                        <div className="order-card-header">
+                                            <div>
+                                                <h2>Booking #{order.order_id}</h2>
+                                                <p>Placed on {formatDate(order.booking_date)}</p>
+                                            </div>
 
-                                            <p>
-                                                Placed on{" "}
-                                                {formatDate(order.booking_date)}
-                                            </p>
+                                            <span className="order-status">
+                                                Completed
+                                            </span>
                                         </div>
 
-                                        <span className="order-status">
-                                            {order.order_status}
-                                        </span>
-                                    </div>
+                                      <button type="button"
+                                            className="view-booking-details"
+                                            onClick={() => toggleOrderDetails(order.order_id)}
+                                        >
+                                            {expandedOrders[order.order_id]
+                                                ? "Hide Booking Details"
+                                                : "View Booking Details"}
+
+                                            <span>
+                                                {expandedOrders[order.order_id] ? "▲" : "▼"}
+                                            </span>
+                                        </button>
+
+{expandedOrders[order.order_id] && (
+                                            <div className="completed-booking-details">
+
+                                                {/* Ordered Products */}
+                                                <div className="order-products">
+                                                    <h3>Ordered Products</h3>
+
+                                                    {order.items.map((item, index) => (
+                                                        <div
+                                                            className="order-product-row"
+                                                            key={`${item.product_id}-${index}`}
+                                                        >
+                                                            <span>
+                                                                {item.product_name} × {item.quantity} {item.unit}
+                                                            </span>
+
+                                                            <strong>
+                                                                ₹{Number(item.total_price).toFixed(2)}
+                                                            </strong>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Booking Information */}
+                                                <div className="order-details">
+                                                    <div>
+                                                        <span>Booking date</span>
+                                                        <strong>{formatDate(order.booking_date)}</strong>
+                                                    </div>
+
+                                                    <div>
+                                                        <span>Preferred time</span>
+                                                        <strong>{formatTime(order.booking_time)}</strong>
+                                                    </div>
+
+                                                    <div>
+                                                        <span>Delivery method</span>
+                                                        <strong>
+                                                            {order.delivery_method === "pickup"
+                                                                ? "Self Pickup"
+                                                                : "Home Delivery"}
+                                                        </strong>
+                                                    </div>
+                                                </div>
+
+                                                {/* Payment Summary */}
+                                                <div className="order-summary">
+                                                    <div>
+                                                        <span>Subtotal</span>
+                                                        <strong>₹{Number(order.subtotal).toFixed(2)}</strong>
+                                                    </div>
+
+                                                    <div>
+                                                        <span>Discount</span>
+                                                        <strong>
+                                                            - ₹{Number(order.discount_amount).toFixed(2)}
+                                                        </strong>
+                                                    </div>
+
+                                                    <div>
+                                                        <span>Delivery Charge</span>
+                                                        <strong>
+                                                            ₹{Number(order.delivery_charge || 0).toFixed(2)}
+                                                        </strong>
+                                                    </div>
+
+                                                    <div>
+                                                        <span>Total amount</span>
+                                                        <strong>
+                                                            ₹{Number(order.total_amount).toFixed(2)}
+                                                        </strong>
+                                                    </div>
+
+                                                    <div>
+                                                        <span>Advance amount</span>
+                                                        <strong>
+                                                            ₹{Number(order.advance_amount).toFixed(2)}
+                                                        </strong>
+                                                    </div>
+
+                                                    <div>
+                                                        <span>Balance amount</span>
+                                                        <strong>
+                                                            ₹{Number(order.balance_amount).toFixed(2)}
+                                                        </strong>
+                                                    </div>
+
+                                                    <div>
+                                                        <span>Payment status</span>
+                                                        <strong>{order.payment_status}</strong>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        )}
+
+
+                                        <div className="completed-order-actions">
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedReviewOrder(order)}
+                                            >
+                                                Add Review
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedComplaintOrder(order)}
+                                            >
+                                                Complaint
+                                            </button>
+                                        </div>
+                                    </article>
+                                ) : (
+                                    
+                                 <article
+                                        className="order-card"
+                                        key={order.order_id}
+                                    >
                                     {/* Booking Progress Timeline */}
                                     {order.order_status !== "Rejected" && (
                                         <div className="booking-progress">
@@ -1114,8 +1336,27 @@ const MyOrders = () => {
                                         </div>
                                     )}
                                 </article>
+                                )
                             );
                         })}
+                            {selectedReviewOrder && (
+                                <ProductReviewModal
+                                    orderId={selectedReviewOrder.order_id}
+                                    products={selectedReviewOrder.items}
+                                    existingReviews={customerReviews.filter(
+                                        review => review.order_id === selectedReviewOrder.order_id
+                                    )}
+                                    onClose={() => setSelectedReviewOrder(null)}
+                                    onSubmit={handleSubmitReview}
+                                />
+                            )}
+                            {selectedComplaintOrder && (
+                                <CustomerComplaintModal
+                                    orderId={selectedComplaintOrder.order_id}
+                                    onClose={() => setSelectedComplaintOrder(null)}
+                                    onSubmit={handleSubmitComplaint}
+                                />
+                            )}
                     </div>
                 )}
             </main>

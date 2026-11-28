@@ -9,6 +9,9 @@ import CategoryManagement from "./pages/CategoryManagement";
 import ProductManagement from "./pages/ProductManagement"
 import DailyCapacityLimit from "./pages/DailyCapacityLimit";
 import AdminOrderManagement from "./pages/AdminOrderManagement";
+import AdminComplaintReply from "./pages/AdminComplaintReply";
+import CustomerComplaintView from "./pages/CustomerComplaintView";
+import AdminReviewManagement from "./pages/AdminReviewManagement";
 import Settings from "./pages/Settings";
 import Shop from "./pages/Shop";
 import Cart from "./pages/Cart"; 
@@ -42,19 +45,22 @@ function App() {
           <Route path="/customer/orders" element={<MyOrders />} />
           <Route path="/customer/profile" element={<CustomerProfile />} />
           <Route path="/customer/change-password" element={<CustomerChangePassword />}/>
+          <Route path="/customer/complaints" element={<CustomerComplaintView />} />
 
-        {/* Admin Pages */}
-        <Route path="/admin" element={<AdminLayout />}>
-         <Route path="dashboard" element={<AdminDashboard />} />
+          {/* Admin Pages */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="place" element={<ProductDelivery />} />
-         <Route path="categories" element={<CategoryManagement />} />
-          <Route path="products" element={<ProductManagement />} /> 
-          <Route path="orders" element={<AdminOrderManagement />} />
+            <Route path="categories" element={<CategoryManagement />} />
+            <Route path="products" element={<ProductManagement />} />
+            <Route path="orders" element={<AdminOrderManagement />} />
+            <Route path="complaints" element={<AdminComplaintReply />} />
             <Route path="payments" element={<AdminPaymentManagement />} />
             <Route path="customers" element={<RegisteredCustomers />} />
             <Route path="capacity" element={<DailyCapacityLimit />} />
+            <Route path="reviews" element={<AdminReviewManagement />} />
             <Route path="settings" element={<Settings />} />
-        </Route>
+          </Route>
 
       </Routes>
       </CartProvider>

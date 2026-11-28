@@ -633,3 +633,211 @@ export const updateDailyCapacityLimit = async (
         });
     }
 };
+
+
+export const getDashboardOverview = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        // 1. Total bookings and pending bookings
+        const [summaryRows] = await pool.query<RowDataPacket[]>(
+            `SELECT
+                COUNT(*) AS total_orders,
+                SUM(
+                    CASE
+                        WHEN order_status = 'Pending Admin Approval'
+                        THEN 1 ELSE 0
+                    END
+                ) AS pending_orders
+             FROM orders`
+        );
+
+        // 2. Total active customers
+        const [customerRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COUNT(*) AS total_customers
+             FROM users
+             WHERE role = 'customer'
+             AND is_active = 1`
+        );
+
+        // 3. Pending payment verification summary
+        const [pendingPaymentRows] =
+            await pool.query<RowDataPacket[]>(
+                `SELECT
+                    payment_type,
+                    COUNT(*) AS payment_count,
+                    COALESCE(SUM(amount), 0) AS total_amount
+                 FROM payment_submissions
+                 WHERE verification_status = 'Pending'
+                 GROUP BY payment_type`
+            );
+
+        const pendingPayments = {
+            total_count: 0,
+            total_amount: 0,
+            advance_count: 0,
+            advance_amount: 0,
+            balance_count: 0,
+            balance_amount: 0
+        };
+
+        for (const payment of pendingPaymentRows) {
+            const count = Number(payment.payment_count);
+            const amount = Number(payment.total_amount);
+
+            pendingPayments.total_count += count;
+            pendingPayments.total_amount += amount;
+
+            if (payment.payment_type === "advance") {
+                pendingPayments.advance_count = count;
+                pendingPayments.advance_amount = amount;
+            }
+
+            if (payment.payment_type === "balance") {
+                pendingPayments.balance_count = count;
+                pendingPayments.balance_amount = amount;
+            }
+        }
+
+        // 4. Monthly revenue from actual received payments
+        // Verified UPI payments + recorded cash collections
+        const [monthlyRevenue] = await pool.query<RowDataPacket[]>(
+            `SELECT
+                DATE_FORMAT(received_at, '%Y-%m') AS month_key,
+                DATE_FORMAT(received_at, '%b') AS month,
+                COALESCE(SUM(amount), 0) AS revenue
+             FROM (
+                SELECT
+                    verified_at AS received_at,
+                    amount
+                FROM payment_submissions
+                WHERE verification_status = 'Verified'
+                AND verified_at IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    balance_paid_at AS received_at,
+                    balance_amount AS amount
+                FROM orders
+                WHERE balance_payment_method = 'cash'
+                AND balance_paid_at IS NOT NULL
+             ) AS received_payments
+             WHERE received_at >= DATE_FORMAT(
+                DATE_SUB(CURDATE(), INTERVAL 5 MONTH),
+                '%Y-%m-01'
+             )
+             AND received_at < DATE_ADD(
+                LAST_DAY(CURDATE()),
+                INTERVAL 1 DAY
+             )
+             GROUP BY
+                DATE_FORMAT(received_at, '%Y-%m'),
+                DATE_FORMAT(received_at, '%b')
+             ORDER BY month_key`
+        );
+
+        // 5. Current month's actual revenue
+        const [currentRevenueRows] =
+            await pool.query<RowDataPacket[]>(
+                `SELECT COALESCE(SUM(amount), 0) AS monthly_revenue
+                 FROM (
+                    SELECT amount, verified_at AS received_at
+                    FROM payment_submissions
+                    WHERE verification_status = 'Verified'
+                    AND verified_at IS NOT NULL
+
+                    UNION ALL
+
+                    SELECT balance_amount AS amount,
+                           balance_paid_at AS received_at
+                    FROM orders
+                    WHERE balance_payment_method = 'cash'
+                    AND balance_paid_at IS NOT NULL
+                 ) AS received_payments
+                 WHERE received_at >= DATE_FORMAT(
+                    CURDATE(), '%Y-%m-01'
+                 )
+                 AND received_at < DATE_ADD(
+                    LAST_DAY(CURDATE()), INTERVAL 1 DAY
+                 )`
+            );
+
+        // 6. Booking status breakdown
+        const [statusData] = await pool.query<RowDataPacket[]>(
+            `SELECT
+                order_status AS name,
+                COUNT(*) AS value
+             FROM orders
+             GROUP BY order_status
+             ORDER BY value DESC`
+        );
+
+        // 7. Latest five bookings
+        const [recentOrders] = await pool.query<RowDataPacket[]>(
+            `SELECT
+                o.order_id,
+                o.customer_name,
+                o.total_amount,
+                o.order_status,
+                o.created_at,
+                GROUP_CONCAT(
+                    DISTINCT oi.product_name
+                    ORDER BY oi.product_name
+                    SEPARATOR ', '
+                ) AS products
+             FROM orders o
+             LEFT JOIN order_items oi
+                ON o.order_id = oi.order_id
+             GROUP BY
+                o.order_id,
+                o.customer_name,
+                o.total_amount,
+                o.order_status,
+                o.created_at
+             ORDER BY o.created_at DESC
+             LIMIT 5`
+        );
+
+        return res.status(200).json({
+            message: "Dashboard overview retrieved successfully.",
+
+            summary: {
+                total_orders: Number(summaryRows[0].total_orders || 0),
+                total_revenue: Number(
+                    currentRevenueRows[0].monthly_revenue || 0
+                ),
+                total_customers: Number(
+                    customerRows[0].total_customers || 0
+                ),
+                pending_orders: Number(
+                    summaryRows[0].pending_orders || 0
+                )
+            },
+
+            pendingPayments,
+
+            monthlyRevenue: monthlyRevenue.map((item) => ({
+                month_key: item.month_key,
+                month: item.month,
+                revenue: Number(item.revenue)
+            })),
+
+            statusData: statusData.map((item) => ({
+                name: item.name,
+                value: Number(item.value)
+            })),
+
+            recentOrders
+        });
+
+    } catch (error) {
+        console.error("Dashboard overview error:", error);
+
+        return res.status(500).json({
+            message: "Unable to retrieve dashboard overview."
+        });
+    }
+};
+

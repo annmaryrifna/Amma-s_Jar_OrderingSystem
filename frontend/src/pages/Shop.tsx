@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Star, UserStar,} from "lucide-react";
 import API from "../services/api";
 import "./css/Shop.css";
 import CustomerSettingsMenu from "./CustomerSettingsMenu";
@@ -26,7 +27,15 @@ interface Product {
     is_active: boolean | number;
 }
 
-
+interface ProductReview {
+    review_id: number;
+    product_id: number;
+    rating: number;
+    review_text: string;
+    created_at: string;
+    customer_name: string;
+    product_name: string;
+}
 
 function parseOptions(options: Product["purchase_options"]): number[] {
     if (!options) return [];
@@ -56,6 +65,9 @@ function Shop() {
     const [selectedQuantity, setSelectedQuantity] = useState("");
     const [showAuthPrompt, setShowAuthPrompt] = useState(false);
     const [cartMessage, setCartMessage] = useState("");
+    const [productReviews, setProductReviews] = useState<ProductReview[]>([]);
+    const [showReviews, setShowReviews] = useState(false);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState("");
     const { addToCart, cartCount } = useCart();
@@ -81,7 +93,35 @@ function Shop() {
 
         fetchShopData();
     }, []);
+    useEffect(() => {
+        const fetchReviews = async () => {
+            if (!selectedProduct) {
+                setProductReviews([]);
+                return;
+            }
 
+            try {
+                setReviewsLoading(true);
+
+                const response = await API.get("/reviews/approved");
+
+                const filteredReviews: ProductReview[] =
+                    (response.data.reviews || []).filter(
+                        (review: ProductReview) =>
+                            review.product_id === selectedProduct.product_id
+                    );
+
+                setProductReviews(filteredReviews);
+            } catch (error) {
+                console.error("Failed to load product reviews:", error);
+                setProductReviews([]);
+            } finally {
+                setReviewsLoading(false);
+            }
+        };
+
+        fetchReviews();
+    }, [selectedProduct]);
     const mainCategories = categories.filter(
         (category) => category.parent_category_id === null
     );
@@ -443,7 +483,75 @@ function Shop() {
                             >
                                 Add to Cart
                             </button>
+                            {/* Product Review Preview */}
+                            {/* Compact Product Reviews */}
+                            <div className="modal-review-preview">
+                                {reviewsLoading ? (
+                                    <p className="modal-review-loading">
+                                        Loading reviews...
+                                    </p>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="modal-reviews-toggle"
+                                            onClick={() => setShowReviews(!showReviews)}
+                                        >
+                                            <span>
+                                                <span className="review-star">★</span>
 
+                                                {productReviews.length > 0 ? (
+                                                    <>
+                                                        <strong>
+                                                            {(
+                                                                productReviews.reduce(
+                                                                    (total, review) => total + review.rating,
+                                                                    0
+                                                                ) / productReviews.length
+                                                            ).toFixed(1)}
+                                                        </strong>
+
+                                                        <small>
+                                                            ({productReviews.length} reviews)
+                                                        </small>
+                                                    </>
+                                                ) : (
+                                                    <small>No reviews yet</small>
+                                                )}
+                                            </span>
+                                                <UserStar size={19} />
+                                            
+                                        </button>
+
+                                        {showReviews && (
+                                            <div className="modal-reviews-expanded">
+                                                <h3>Customer Reviews</h3>
+
+                                                {productReviews.length === 0 ? (
+                                                    <p>No customer reviews available yet.</p>
+                                                ) : (
+                                                    productReviews.map((review) => (
+                                                        <div
+                                                            className="modal-review-message"
+                                                            key={review.review_id}
+                                                        >
+                                                            <span>
+                                                                {"★".repeat(review.rating)}
+                                                            </span>
+
+                                                            <p>"{review.review_text}"</p>
+
+                                                            <small>
+                                                                — {review.customer_name}
+                                                            </small>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                             {cartMessage && (
                                 <p className="cart-feedback" role="status">
                                     {cartMessage}

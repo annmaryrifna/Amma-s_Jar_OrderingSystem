@@ -1,0 +1,337 @@
+.admin-complaints-page {
+    padding: 30px;
+    color: #34312D;
+}
+
+.admin-complaints-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.admin-complaints-header h1 {
+    color: #344E41;
+    font-size: 26px;
+    margin: 0 0 8px;
+}
+
+.admin-complaints-header p {
+    color: #777;
+    font-size: 14px;
+    margin: 0;
+}
+
+.refresh-complaints-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #344E41;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.refresh-complaints-button:hover {
+    background: #A65D3F;
+}
+
+/* Complaints Table */
+
+.complaints-table-container {
+    width: 100%;
+    overflow-x: auto;
+    background: #fff;
+    border: 1px solid #E5DED2;
+    border-radius: 10px;
+}
+
+.complaints-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 850px;
+}
+
+.complaints-table th {
+    background: #F8F5EF;
+    color: #344E41;
+    padding: 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.complaints-table td {
+    padding: 16px;
+    border-top: 1px solid #EEE9E1;
+    color: #555;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.complaints-table tbody tr:hover {
+    background: #FCFAF6;
+}
+
+.complaint-table-customer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.complaint-table-customer strong {
+    color: #34312D;
+    font-size: 13px;
+}
+
+.complaint-table-customer span {
+    color: #888;
+    font-size: 12px;
+}
+
+/* Status */
+
+.complaint-status {
+    display: inline-block;
+    padding: 6px 11px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.complaint-status.pending {
+    background: #FFF0D6;
+    color: #946200;
+}
+
+.complaint-status.in-progress {
+    background: #E5EFFB;
+    color: #285B91;
+}
+
+.complaint-status.resolved {
+    background: #E4F2E8;
+    color: #28633C;
+}
+
+/* View Button */
+
+.view-complaint-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #344E41;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.view-complaint-button:hover {
+    background: #A65D3F;
+}
+
+/* Empty State */
+
+.complaints-empty-state {
+    padding: 50px 20px;
+    text-align: center;
+    color: #777;
+}
+
+.complaints-empty-state h3 {
+    color: #344E41;
+    margin-bottom: 8px;
+}
+
+/* Popup Overlay */
+
+.complaint-details-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Popup */
+
+.complaint-details-modal {
+    width: 100%;
+    max-width: 620px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #F8F5EF;
+    border-radius: 12px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+}
+
+.complaint-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 26px;
+    border-bottom: 1px solid #E5DED2;
+}
+
+.complaint-details-header h2 {
+    color: #344E41;
+    font-size: 21px;
+    margin: 0 0 6px;
+}
+
+.complaint-details-header p {
+    color: #777;
+    font-size: 13px;
+    margin: 0;
+}
+
+.complaint-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.complaint-details-body {
+    padding: 24px 26px;
+}
+
+.complaint-info-section {
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #E5DED2;
+}
+
+.complaint-info-section h3,
+.complaint-reply-section h3 {
+    color: #344E41;
+    font-size: 15px;
+    margin: 0 0 13px;
+}
+
+.complaint-info-section p {
+    color: #555;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 6px 0;
+    overflow-wrap: anywhere;
+}
+
+.complaint-message-box {
+    margin-top: 10px;
+    padding: 14px;
+    background: white;
+    border: 1px solid #E5DED2;
+    border-radius: 6px;
+    color: #555;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* Reply Form */
+
+.complaint-reply-section {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+
+.complaint-reply-section label {
+    color: #344E41;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.complaint-reply-section select,
+.complaint-reply-section textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    background: white;
+    border: 1px solid #D8D0C3;
+    border-radius: 6px;
+    color: #34312D;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+.complaint-reply-section select:focus,
+.complaint-reply-section textarea:focus {
+    border-color: #344E41;
+}
+
+.complaint-reply-section textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.save-complaint-reply {
+    align-self: flex-start;
+    padding: 11px 22px;
+    margin-top: 5px;
+    background: #344E41;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.save-complaint-reply:hover {
+    background: #A65D3F;
+}
+
+.save-complaint-reply:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.admin-complaints-error {
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    background: #FCE8E6;
+    color: #A12D25;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* Responsive */
+
+@media (max-width: 650px) {
+    .admin-complaints-page {
+        padding: 18px;
+    }
+
+    .admin-complaints-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .complaint-details-body {
+        padding: 20px;
+    }
+
+    .complaint-details-header {
+        padding: 18px 20px;
+    }
+}

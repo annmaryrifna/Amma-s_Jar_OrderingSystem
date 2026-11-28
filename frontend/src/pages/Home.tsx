@@ -11,7 +11,7 @@ import {
     MessageCircle
 } from "lucide-react";
 import "./css/Home.css";
-
+import CustomerReviewCarousel from "./CustomerReviewCarousel";
 function Home() {
     return (
         <div className="home-page">
@@ -154,7 +154,7 @@ function Home() {
                 </div>
             </section>
 
-
+            <CustomerReviewCarousel />
 
 
             {/* Footer */}
